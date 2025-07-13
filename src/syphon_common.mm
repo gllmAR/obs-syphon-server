@@ -20,8 +20,7 @@ with this program. If not, see <https://www.gnu.org/licenses/>
 #import <plugin-support.h>
 #import <CoreVideo/CoreVideo.h>
 
-// Silence OpenGL deprecation warnings
-#define GL_SILENCE_DEPRECATION
+// GL_SILENCE_DEPRECATION is now defined in CMakeLists.txt
 #import <OpenGL/gl.h>
 
 // Use the local Syphon headers, not the system ones
