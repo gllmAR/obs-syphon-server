@@ -167,8 +167,9 @@ build() {
       
       pushd "${obs_studio_path}"
       
-      # Configure OBS Studio build
+      # Configure OBS Studio build with Xcode generator (required on macOS)
       cmake -S . -B build \
+        -G Xcode \
         -DCMAKE_BUILD_TYPE=RelWithDebInfo \
         -DCMAKE_OSX_ARCHITECTURES=arm64 \
         -DENABLE_BROWSER=OFF \
@@ -182,12 +183,18 @@ build() {
         -DENABLE_PLUGINS=OFF \
         -DBUILD_FOR_DISTRIBUTION=OFF
       
-      # Build only libobs (the core library we need)
-      cmake --build build --target libobs
+      # Build only libobs (the core library we need) using xcodebuild
+      xcodebuild \
+        -project build/obs-studio.xcodeproj \
+        -target libobs \
+        -configuration RelWithDebInfo \
+        -arch arm64 \
+        build
       
       popd
       
-      if [[ ! -f "${obs_studio_path}/build/libobs/libobs.dylib" ]] {
+      # Check for the built library in the Xcode build output location
+      if [[ ! -f "${obs_studio_path}/build/libobs/RelWithDebInfo/libobs.dylib" ]] {
         log_error "Failed to build OBS Studio libobs"
         exit 1
       }

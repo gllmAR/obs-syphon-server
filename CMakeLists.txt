@@ -47,29 +47,43 @@ if(NOT OBS_FOUND AND APPLE)
   # In CI, prioritize built OBS from submodule
   if(DEFINED ENV{CI})
     set(OBS_STUDIO_PATH "${CMAKE_CURRENT_SOURCE_DIR}/deps/obs-studio")
-    if(EXISTS "${OBS_STUDIO_PATH}/build/libobs/libobs.dylib")
-      message(STATUS "CI: Using built OBS Studio from submodule")
-      
+    # Check for Xcode build output location (used in CI)
+    if(EXISTS "${OBS_STUDIO_PATH}/build/libobs/RelWithDebInfo/libobs.dylib")
+      message(STATUS "CI: Using built OBS Studio from submodule (Xcode build)")
+
       # Add src directory first so obsconfig.h can be found
       target_include_directories(${PLUGIN_NAME} BEFORE PRIVATE "src")
       target_include_directories(${PLUGIN_NAME} PRIVATE "${OBS_STUDIO_PATH}/libobs")
-      
+
       # Link against built OBS libraries
-      target_link_libraries(
-        ${PLUGIN_NAME}
-        PRIVATE
-          "${OBS_STUDIO_PATH}/build/libobs/libobs.dylib"
-      )
-      
+      target_link_libraries(${PLUGIN_NAME} PRIVATE "${OBS_STUDIO_PATH}/build/libobs/RelWithDebInfo/libobs.dylib")
+
       target_compile_definitions(
         ${PLUGIN_NAME}
         PRIVATE PLUGIN_NAME_STR="${PLUGIN_NAME}" PLUGIN_VERSION_STR="${PLUGIN_VERSION}"
       )
-      
+
+      set(OBS_FOUND TRUE)
+      # Also check for regular cmake build output location as fallback
+    elseif(EXISTS "${OBS_STUDIO_PATH}/build/libobs/libobs.dylib")
+      message(STATUS "CI: Using built OBS Studio from submodule (regular build)")
+
+      # Add src directory first so obsconfig.h can be found
+      target_include_directories(${PLUGIN_NAME} BEFORE PRIVATE "src")
+      target_include_directories(${PLUGIN_NAME} PRIVATE "${OBS_STUDIO_PATH}/libobs")
+
+      # Link against built OBS libraries
+      target_link_libraries(${PLUGIN_NAME} PRIVATE "${OBS_STUDIO_PATH}/build/libobs/libobs.dylib")
+
+      target_compile_definitions(
+        ${PLUGIN_NAME}
+        PRIVATE PLUGIN_NAME_STR="${PLUGIN_NAME}" PLUGIN_VERSION_STR="${PLUGIN_VERSION}"
+      )
+
       set(OBS_FOUND TRUE)
     endif()
   endif()
-  
+
   # Fall back to system OBS installation if not in CI or if CI build not found
   if(NOT OBS_FOUND)
     set(OBS_APP_PATH "/Applications/OBS.app/Contents")
@@ -111,18 +125,22 @@ if(NOT OBS_FOUND)
   if(EXISTS "${OBS_STUDIO_PATH}/libobs/obs.h")
     message(STATUS "Using OBS Studio headers from submodule")
 
-    # Try to find the built OBS library (check multiple possible paths)
-    find_library(LIBOBS_LIBRARY NAMES obs libobs PATHS 
-      "${OBS_STUDIO_PATH}/build/libobs"
-      "${OBS_STUDIO_PATH}/build/libobs/Debug" 
-      "${OBS_STUDIO_PATH}/build/libobs/RelWithDebInfo"
-      "${OBS_STUDIO_PATH}/build/libobs/Release"
-      NO_DEFAULT_PATH)
+    # Try to find the built OBS library (check multiple possible paths including Xcode output)
+    find_library(
+      LIBOBS_LIBRARY
+      NAMES obs libobs
+      PATHS
+        "${OBS_STUDIO_PATH}/build/libobs/RelWithDebInfo"
+        "${OBS_STUDIO_PATH}/build/libobs/Debug"
+        "${OBS_STUDIO_PATH}/build/libobs/Release"
+        "${OBS_STUDIO_PATH}/build/libobs"
+      NO_DEFAULT_PATH
+    )
 
     if(LIBOBS_LIBRARY)
       message(STATUS "Found built OBS library: ${LIBOBS_LIBRARY}")
       target_link_libraries(${PLUGIN_NAME} PRIVATE ${LIBOBS_LIBRARY})
-      
+
       target_include_directories(${PLUGIN_NAME} BEFORE PRIVATE "src")
       target_include_directories(${PLUGIN_NAME} PRIVATE "${OBS_STUDIO_PATH}/libobs")
 
@@ -130,7 +148,7 @@ if(NOT OBS_FOUND)
         ${PLUGIN_NAME}
         PRIVATE PLUGIN_NAME_STR="${PLUGIN_NAME}" PLUGIN_VERSION_STR="${PLUGIN_VERSION}"
       )
-      
+
       set(OBS_FOUND TRUE)
     endif()
   else()
@@ -155,7 +173,7 @@ if(APPLE)
 
   # Add Objective-C compilation flags
   target_compile_options(${PLUGIN_NAME} PRIVATE -fobjc-arc)
-  
+
   # Silence OpenGL deprecation warnings (OpenGL is deprecated on macOS but still used by Syphon)
   target_compile_definitions(${PLUGIN_NAME} PRIVATE GL_SILENCE_DEPRECATION)
 
