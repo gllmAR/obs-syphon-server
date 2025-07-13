@@ -18,16 +18,16 @@ with this program. If not, see <https://www.gnu.org/licenses/>
 
 #include <plugin-support.h>
 
-const char *PLUGIN_NAME = "@CMAKE_PROJECT_NAME@";
-const char *PLUGIN_VERSION = "@CMAKE_PROJECT_VERSION@";
+const char *plugin_name = "@CMAKE_PROJECT_NAME@";
+const char *plugin_version = "@CMAKE_PROJECT_VERSION@";
 
 void obs_log(int log_level, const char *format, ...)
 {
-	size_t length = 4 + strlen(PLUGIN_NAME) + strlen(format);
+	size_t length = 4 + strlen(plugin_name) + strlen(format);
 
 	char *template = malloc(length + 1);
 
-	snprintf(template, length, "[%s] %s", PLUGIN_NAME, format);
+	snprintf(template, length, "[%s] %s", plugin_name, format);
 
 	va_list(args);
 

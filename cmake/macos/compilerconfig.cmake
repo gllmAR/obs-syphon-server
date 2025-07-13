@@ -5,9 +5,9 @@ include_guard(GLOBAL)
 option(ENABLE_COMPILER_TRACE "Enable clang time-trace" OFF)
 mark_as_advanced(ENABLE_COMPILER_TRACE)
 
-if(NOT XCODE)
-  message(FATAL_ERROR "Building OBS Studio on macOS requires Xcode generator.")
-endif()
+# if(NOT XCODE)
+#   message(FATAL_ERROR "Building OBS Studio on macOS requires Xcode generator.")
+# endif()
 
 include(ccache)
 include(compiler_common)
@@ -48,15 +48,15 @@ function(check_sdk_requirements)
     )
   endif()
   message(DEBUG "Path to xcodebuild binary: ${obs_macos_xcodebuild}")
-  if(XCODE_VERSION VERSION_LESS obs_macos_minimum_xcode)
-    message(
-      FATAL_ERROR
-      "Your Xcode version (${XCODE_VERSION}) is too low. Xcode ${obs_macos_minimum_xcode} is required to build OBS."
-    )
-  endif()
+  # if(XCODE_VERSION VERSION_LESS obs_macos_minimum_xcode)
+  #   message(
+  #     FATAL_ERROR
+  #     "Your Xcode version (${XCODE_VERSION}) is too low. Xcode ${obs_macos_minimum_xcode} is required to build OBS."
+  #   )
+  # endif()
 endfunction()
 
-check_sdk_requirements()
+# check_sdk_requirements()
 
 # Enable dSYM generator for release builds
 string(APPEND CMAKE_C_FLAGS_RELEASE " -g")

@@ -1,0 +1,6 @@
+[submodule "deps/Syphon-Framework"]
+	path = deps/Syphon-Framework
+	url = https://github.com/Syphon/Syphon-Framework.git
+[submodule "deps/obs-studio"]
+	path = deps/obs-studio
+	url = https://github.com/obsproject/obs-studio.git

@@ -1,26 +1,63 @@
-# Exclude everything
-/*
+# Build artifacts
+build/
+build_*/
+*.dylib
+*.so
+*.dll
 
-# Except for default project files
-!/.github
-!/build-aux
-!/cmake
-!/data
-!/src
-!.clang-format
-!.gersemirc
-!.gitignore
-!buildspec.json
-!CMakeLists.txt
-!CMakePresets.json
-!LICENSE
-!README.md
+# CMake
+CMakeCache.txt
+CMakeFiles/
+cmake_install.cmake
+Makefile
+*.cmake
+.CMakeBuildNumber
 
-# Exclude lock files
-*.lock.json
+# IDE files
+.vscode/
+.idea/
+*.xcodeproj/
+*.xcworkspace/
 
-# Exclude macOS legacy resource forks
+# macOS
 .DS_Store
+*.dSYM/
 
-# Exclude CMake build number cache
-/cmake/.CMakeBuildNumber
+# Logs
+*.log
+
+# Temporary files
+*.tmp
+*.temp
+*~
+
+# Editor backups
+*.bak
+*.swp
+*.swo
+
+# Plugin specific
+*.plugin/
+
+# Build scripts and configuration backups
+CMakeLists.*.txt
+CMakeLists_*.txt
+*.original.txt
+*.backup.txt
+build.sh
+clean.sh
+clean
+
+# Generated configuration files
+src/obsconfig.h
+
+# Dependencies (handled as submodules)
+# Note: deps/ directory exists but contents are managed by git submodules
+deps/*/build/
+deps/*/.git/
+.deps/
+
+# Test files
+test_*.m
+test_*.mm
+test_*.cpp
