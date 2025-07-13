@@ -48,9 +48,6 @@ build.sh
 clean.sh
 clean
 
-# Generated configuration files
-src/obsconfig.h
-
 # Dependencies (handled as submodules)
 # Note: deps/ directory exists but contents are managed by git submodules
 deps/*/build/

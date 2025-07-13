@@ -44,7 +44,9 @@ if(NOT OBS_FOUND AND APPLE)
     # Use system OBS headers from submodule but system libraries
     set(OBS_STUDIO_PATH "${CMAKE_CURRENT_SOURCE_DIR}/deps/obs-studio")
     if(EXISTS "${OBS_STUDIO_PATH}/libobs/obs.h")
-      target_include_directories(${PLUGIN_NAME} PRIVATE "${OBS_STUDIO_PATH}/libobs" "src")
+      # Add src directory first so obsconfig.h can be found
+      target_include_directories(${PLUGIN_NAME} BEFORE PRIVATE "src")
+      target_include_directories(${PLUGIN_NAME} PRIVATE "${OBS_STUDIO_PATH}/libobs")
 
       # Link against system OBS libraries  
       target_link_libraries(
@@ -81,7 +83,8 @@ if(NOT OBS_FOUND)
       target_link_libraries(${PLUGIN_NAME} PRIVATE ${LIBOBS_LIBRARY})
     endif()
 
-    target_include_directories(${PLUGIN_NAME} PRIVATE "${OBS_STUDIO_PATH}/libobs" "src")
+    target_include_directories(${PLUGIN_NAME} BEFORE PRIVATE "src")
+    target_include_directories(${PLUGIN_NAME} PRIVATE "${OBS_STUDIO_PATH}/libobs")
 
     target_compile_definitions(
       ${PLUGIN_NAME}
