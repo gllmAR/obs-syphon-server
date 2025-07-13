@@ -2,9 +2,16 @@ cmake_minimum_required(VERSION 3.16)
 
 project(obs-syphon-server VERSION 1.0.0 LANGUAGES C CXX)
 
-# For macOS, build for current architecture
+# For macOS, build for current architecture (force arm64 in CI)
 if(APPLE)
-  execute_process(COMMAND uname -m OUTPUT_VARIABLE CURRENT_ARCH OUTPUT_STRIP_TRAILING_WHITESPACE)
+  if(DEFINED ENV{CI})
+    # In CI, force arm64 to match OBS installation
+    set(CURRENT_ARCH "arm64")
+    message(STATUS "CI detected - forcing architecture to: arm64")
+  else()
+    execute_process(COMMAND uname -m OUTPUT_VARIABLE CURRENT_ARCH OUTPUT_STRIP_TRAILING_WHITESPACE)
+    message(STATUS "Local build - detected architecture: ${CURRENT_ARCH}")
+  endif()
   set(CMAKE_OSX_ARCHITECTURES "${CURRENT_ARCH}")
   message(STATUS "Setting macOS architecture to: ${CURRENT_ARCH}")
 endif()
@@ -35,36 +42,65 @@ if(PKG_CONFIG_FOUND)
   pkg_check_modules(OBS QUIET obs)
 endif()
 
-# Check for system OBS installation (macOS app bundle)
+# Check for system OBS installation (macOS app bundle) or built OBS in CI
 if(NOT OBS_FOUND AND APPLE)
-  set(OBS_APP_PATH "/Applications/OBS.app/Contents")
-  if(EXISTS "${OBS_APP_PATH}/Frameworks/libobs.framework")
-    message(STATUS "Found system OBS installation at ${OBS_APP_PATH}")
-
-    # Use system OBS headers from submodule but system libraries
+  # In CI, prioritize built OBS from submodule
+  if(DEFINED ENV{CI})
     set(OBS_STUDIO_PATH "${CMAKE_CURRENT_SOURCE_DIR}/deps/obs-studio")
-    if(EXISTS "${OBS_STUDIO_PATH}/libobs/obs.h")
+    if(EXISTS "${OBS_STUDIO_PATH}/build/libobs/libobs.dylib")
+      message(STATUS "CI: Using built OBS Studio from submodule")
+      
       # Add src directory first so obsconfig.h can be found
       target_include_directories(${PLUGIN_NAME} BEFORE PRIVATE "src")
       target_include_directories(${PLUGIN_NAME} PRIVATE "${OBS_STUDIO_PATH}/libobs")
-
-      # Link against system OBS libraries  
+      
+      # Link against built OBS libraries
       target_link_libraries(
         ${PLUGIN_NAME}
         PRIVATE
-          "${OBS_APP_PATH}/Frameworks/libobs.framework/Versions/A/libobs"
-          "${OBS_APP_PATH}/Frameworks/obs-frontend-api.dylib"
+          "${OBS_STUDIO_PATH}/build/libobs/libobs.dylib"
       )
-
-      # Set rpath for OBS libraries
-      set_target_properties(${PLUGIN_NAME} PROPERTIES LINK_FLAGS "-rpath ${OBS_APP_PATH}/Frameworks")
-
+      
       target_compile_definitions(
         ${PLUGIN_NAME}
         PRIVATE PLUGIN_NAME_STR="${PLUGIN_NAME}" PLUGIN_VERSION_STR="${PLUGIN_VERSION}"
       )
-
+      
       set(OBS_FOUND TRUE)
+    endif()
+  endif()
+  
+  # Fall back to system OBS installation if not in CI or if CI build not found
+  if(NOT OBS_FOUND)
+    set(OBS_APP_PATH "/Applications/OBS.app/Contents")
+    if(EXISTS "${OBS_APP_PATH}/Frameworks/libobs.framework")
+      message(STATUS "Found system OBS installation at ${OBS_APP_PATH}")
+
+      # Use system OBS headers from submodule but system libraries
+      set(OBS_STUDIO_PATH "${CMAKE_CURRENT_SOURCE_DIR}/deps/obs-studio")
+      if(EXISTS "${OBS_STUDIO_PATH}/libobs/obs.h")
+        # Add src directory first so obsconfig.h can be found
+        target_include_directories(${PLUGIN_NAME} BEFORE PRIVATE "src")
+        target_include_directories(${PLUGIN_NAME} PRIVATE "${OBS_STUDIO_PATH}/libobs")
+
+        # Link against system OBS libraries  
+        target_link_libraries(
+          ${PLUGIN_NAME}
+          PRIVATE
+            "${OBS_APP_PATH}/Frameworks/libobs.framework/Versions/A/libobs"
+            "${OBS_APP_PATH}/Frameworks/obs-frontend-api.dylib"
+        )
+
+        # Set rpath for OBS libraries
+        set_target_properties(${PLUGIN_NAME} PROPERTIES LINK_FLAGS "-rpath ${OBS_APP_PATH}/Frameworks")
+
+        target_compile_definitions(
+          ${PLUGIN_NAME}
+          PRIVATE PLUGIN_NAME_STR="${PLUGIN_NAME}" PLUGIN_VERSION_STR="${PLUGIN_VERSION}"
+        )
+
+        set(OBS_FOUND TRUE)
+      endif()
     endif()
   endif()
 endif()
@@ -75,21 +111,28 @@ if(NOT OBS_FOUND)
   if(EXISTS "${OBS_STUDIO_PATH}/libobs/obs.h")
     message(STATUS "Using OBS Studio headers from submodule")
 
-    # Try to find the built OBS library
-    find_library(LIBOBS_LIBRARY NAMES obs libobs PATHS "${OBS_STUDIO_PATH}/build/libobs/Debug" NO_DEFAULT_PATH)
+    # Try to find the built OBS library (check multiple possible paths)
+    find_library(LIBOBS_LIBRARY NAMES obs libobs PATHS 
+      "${OBS_STUDIO_PATH}/build/libobs"
+      "${OBS_STUDIO_PATH}/build/libobs/Debug" 
+      "${OBS_STUDIO_PATH}/build/libobs/RelWithDebInfo"
+      "${OBS_STUDIO_PATH}/build/libobs/Release"
+      NO_DEFAULT_PATH)
 
     if(LIBOBS_LIBRARY)
       message(STATUS "Found built OBS library: ${LIBOBS_LIBRARY}")
       target_link_libraries(${PLUGIN_NAME} PRIVATE ${LIBOBS_LIBRARY})
+      
+      target_include_directories(${PLUGIN_NAME} BEFORE PRIVATE "src")
+      target_include_directories(${PLUGIN_NAME} PRIVATE "${OBS_STUDIO_PATH}/libobs")
+
+      target_compile_definitions(
+        ${PLUGIN_NAME}
+        PRIVATE PLUGIN_NAME_STR="${PLUGIN_NAME}" PLUGIN_VERSION_STR="${PLUGIN_VERSION}"
+      )
+      
+      set(OBS_FOUND TRUE)
     endif()
-
-    target_include_directories(${PLUGIN_NAME} BEFORE PRIVATE "src")
-    target_include_directories(${PLUGIN_NAME} PRIVATE "${OBS_STUDIO_PATH}/libobs")
-
-    target_compile_definitions(
-      ${PLUGIN_NAME}
-      PRIVATE PLUGIN_NAME_STR="${PLUGIN_NAME}" PLUGIN_VERSION_STR="${PLUGIN_VERSION}"
-    )
   else()
     message(
       FATAL_ERROR

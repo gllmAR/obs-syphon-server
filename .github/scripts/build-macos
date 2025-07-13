@@ -112,16 +112,31 @@ build() {
     pushd "${syphon_framework_path}"
     
     # Build Syphon framework using xcodebuild
-    xcodebuild \
-      -project Syphon.xcodeproj \
-      -target Syphon \
-      -configuration Release \
-      -arch arm64 \
-      -arch x86_64 \
-      ARCHS="arm64 x86_64" \
-      ONLY_ACTIVE_ARCH=NO \
-      MACOSX_DEPLOYMENT_TARGET=11.0 \
-      build
+    # In CI, only build for arm64 to match OBS installation
+    if [[ -n "${CI}" ]] {
+      log_info "CI detected - building Syphon for arm64 only"
+      xcodebuild \
+        -project Syphon.xcodeproj \
+        -target Syphon \
+        -configuration Release \
+        -arch arm64 \
+        ARCHS="arm64" \
+        ONLY_ACTIVE_ARCH=YES \
+        MACOSX_DEPLOYMENT_TARGET=11.0 \
+        build
+    } else {
+      log_info "Local build - building Syphon for multiple architectures"
+      xcodebuild \
+        -project Syphon.xcodeproj \
+        -target Syphon \
+        -configuration Release \
+        -arch arm64 \
+        -arch x86_64 \
+        ARCHS="arm64 x86_64" \
+        ONLY_ACTIVE_ARCH=NO \
+        MACOSX_DEPLOYMENT_TARGET=11.0 \
+        build
+    }
     
     popd
     
@@ -133,6 +148,54 @@ build() {
     log_info "Syphon framework built successfully"
   } else {
     log_info "Syphon framework already built"
+  }
+
+  # Build OBS Studio for CI to ensure we have the required libraries
+  if [[ -n "${CI}" ]] {
+    log_group "Building OBS Studio for CI..."
+    local obs_studio_path="deps/obs-studio"
+    local obs_build_path="${obs_studio_path}/build"
+    
+    if [[ ! -d "${obs_build_path}" ]] {
+      log_info "OBS Studio not built, building from source for CI..."
+      
+      if [[ ! -d "${obs_studio_path}" ]] {
+        log_error "OBS Studio source not found at ${obs_studio_path}"
+        log_error "Make sure the submodule is properly initialized"
+        exit 1
+      }
+      
+      pushd "${obs_studio_path}"
+      
+      # Configure OBS Studio build
+      cmake -S . -B build \
+        -DCMAKE_BUILD_TYPE=RelWithDebInfo \
+        -DCMAKE_OSX_ARCHITECTURES=arm64 \
+        -DENABLE_BROWSER=OFF \
+        -DENABLE_WEBSOCKET=OFF \
+        -DENABLE_AJA=OFF \
+        -DENABLE_BLACKMAGIC_DECKLINK=OFF \
+        -DENABLE_DECKLINK=OFF \
+        -DENABLE_VIRTUALCAM=OFF \
+        -DENABLE_VLC=OFF \
+        -DENABLE_SCRIPTING=OFF \
+        -DENABLE_PLUGINS=OFF \
+        -DBUILD_FOR_DISTRIBUTION=OFF
+      
+      # Build only libobs (the core library we need)
+      cmake --build build --target libobs
+      
+      popd
+      
+      if [[ ! -f "${obs_studio_path}/build/libobs/libobs.dylib" ]] {
+        log_error "Failed to build OBS Studio libobs"
+        exit 1
+      }
+      
+      log_info "OBS Studio built successfully"
+    } else {
+      log_info "OBS Studio already built"
+    }
   }
 
   local -a cmake_args=()
