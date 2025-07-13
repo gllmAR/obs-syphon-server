@@ -142,6 +142,13 @@ jobs:
           codesign: ${{ fromJSON(needs.check-event.outputs.codesign) }}
           codesignIdent: ${{ steps.codesign.outputs.codesignIdent }}
 
+      - name: Test CI Build 🧪
+        shell: zsh --no-rcs --errexit --pipefail {0}
+        run: |
+          : Test CI Build 🧪
+          if (( ${+RUNNER_DEBUG} )) setopt XTRACE
+          ./.github/scripts/test-ci
+
       - name: Package Plugin 📀
         uses: ./.github/actions/package-plugin
         with:

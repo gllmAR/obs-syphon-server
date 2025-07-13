@@ -1,0 +1,85 @@
+#!/bin/bash
+
+# Test script for CI validation of OBS Syphon Server Plugin
+
+set -e
+
+echo "🧪 Running CI validation tests for OBS Syphon Server Plugin..."
+
+# Test 1: Check if Syphon framework was built
+SYPHON_FRAMEWORK="deps/Syphon-Framework/build/Release/Syphon.framework"
+if [ -d "$SYPHON_FRAMEWORK" ]; then
+    echo "✅ Syphon framework found at $SYPHON_FRAMEWORK"
+else
+    echo "❌ Syphon framework not found at $SYPHON_FRAMEWORK"
+    exit 1
+fi
+
+# Test 2: Check if Syphon framework has required headers
+SYPHON_HEADERS="$SYPHON_FRAMEWORK/Headers"
+if [ -f "$SYPHON_HEADERS/Syphon.h" ] && [ -f "$SYPHON_HEADERS/SyphonOpenGLServer.h" ]; then
+    echo "✅ Syphon framework headers found"
+else
+    echo "❌ Syphon framework headers missing"
+    exit 1
+fi
+
+# Test 3: Check if plugin was built
+PLUGIN_PATH="build_macos/bin/Release/obs-syphon-server.plugin"
+if [ -d "$PLUGIN_PATH" ]; then
+    echo "✅ Plugin bundle found at $PLUGIN_PATH"
+else
+    echo "❌ Plugin bundle not found at $PLUGIN_PATH"
+    exit 1
+fi
+
+# Test 4: Check if plugin binary exists and is properly signed
+PLUGIN_BINARY="$PLUGIN_PATH/Contents/MacOS/obs-syphon-server"
+if [ -f "$PLUGIN_BINARY" ]; then
+    echo "✅ Plugin binary found"
+    
+    # Check code signature
+    if codesign -dv "$PLUGIN_PATH" 2>/dev/null; then
+        echo "✅ Plugin is code signed"
+    else
+        echo "⚠️ Plugin is not code signed (expected for CI builds)"
+    fi
+    
+    # Check architecture
+    if file "$PLUGIN_BINARY" | grep -q "Mach-O 64-bit bundle arm64"; then
+        echo "✅ Plugin contains arm64 architecture"
+    else
+        echo "❌ Plugin missing arm64 architecture"
+        exit 1
+    fi
+else
+    echo "❌ Plugin binary not found at $PLUGIN_BINARY"
+    exit 1
+fi
+
+# Test 5: Check if plugin links against Syphon framework
+if otool -L "$PLUGIN_BINARY" | grep -q "Syphon.framework"; then
+    echo "✅ Plugin properly linked against Syphon framework"
+else
+    echo "❌ Plugin not linked against Syphon framework"
+    exit 1
+fi
+
+# Test 6: Check if local Syphon headers are present
+if [ -f "src/SyphonOpenGLServer.h" ] && [ -f "src/SyphonServerBase.h" ]; then
+    echo "✅ Local Syphon headers found"
+else
+    echo "❌ Local Syphon headers missing"
+    exit 1
+fi
+
+echo ""
+echo "🎉 All CI validation tests passed!"
+echo ""
+echo "📊 Build Summary:"
+echo "  - Syphon Framework: Built successfully"
+echo "  - Plugin Binary: Built and linked"
+echo "  - Architecture: arm64 (Apple Silicon ready)"
+echo "  - Framework Integration: ✅"
+echo ""
+echo "🚀 Plugin is ready for distribution and testing!"
