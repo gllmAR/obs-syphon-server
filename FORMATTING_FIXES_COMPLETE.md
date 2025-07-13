@@ -42,9 +42,20 @@ Applied gersemi to CMake files:
 
 ## Verification
 
-- All changes committed to git: commit `ade1f02`
+- All changes committed to git: commit `ade1f02` (formatting), commit `3376129` (obsconfig.h fix)
 - Changes pushed to remote repository
 - CI pipeline triggered to verify formatting fixes
+
+## Additional Fix Applied
+
+### Missing obsconfig.h Issue
+After formatting fixes were applied, CI revealed a missing `obsconfig.h` file error:
+- **Problem**: OBS headers require `obsconfig.h` but file was not available in CI environment
+- **Solution**: Created `src/obsconfig.h` with minimal OBS configuration for macOS
+- **Changes**: 
+  - Added `src/obsconfig.h` to repository (removed from `.gitignore`)
+  - Updated `CMakeLists.txt` to prioritize `src` directory in include path
+  - This ensures OBS headers can find the configuration file during compilation
 
 ## Next Steps
 
