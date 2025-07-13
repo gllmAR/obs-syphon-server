@@ -112,6 +112,9 @@ if(APPLE)
 
   # Add Objective-C compilation flags
   target_compile_options(${PLUGIN_NAME} PRIVATE -fobjc-arc)
+  
+  # Silence OpenGL deprecation warnings (OpenGL is deprecated on macOS but still used by Syphon)
+  target_compile_definitions(${PLUGIN_NAME} PRIVATE GL_SILENCE_DEPRECATION)
 
   # Add Objective-C sources for Syphon (main output only - filter disabled due to symbol conflicts)
   target_sources(
