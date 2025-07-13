@@ -19,9 +19,8 @@ with this program. If not, see <https://www.gnu.org/licenses/>
 #pragma once
 
 #ifdef __OBJC__
-// Use local headers for compilation but OBS's runtime framework
+// Use local headers to avoid framework path issues
 #include "SyphonOpenGLServer.h"
-#include "SyphonMetalServer.h"
 #import <Metal/Metal.h>
 #import <OpenGL/OpenGL.h>
 #import <Cocoa/Cocoa.h>

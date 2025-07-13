@@ -19,8 +19,13 @@ with this program. If not, see <https://www.gnu.org/licenses/>
 #import "syphon_common.hpp"
 #import <plugin-support.h>
 #import <CoreVideo/CoreVideo.h>
+
+// Silence OpenGL deprecation warnings
+#define GL_SILENCE_DEPRECATION
 #import <OpenGL/gl.h>
-#import "Syphon.h"
+
+// Use the local Syphon headers, not the system ones
+#import "SyphonOpenGLServer.h"
 
 // Global server for main output
 static struct sy_server *g_main_server = NULL;

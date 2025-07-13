@@ -130,34 +130,24 @@ if(APPLE)
         src/syphon_main_server.mm
     )
     
-    # Build Syphon from source for main output (filter disabled to avoid crashes)
+    # Use pre-built Syphon framework
     set(SYPHON_FRAMEWORK_PATH "${CMAKE_CURRENT_SOURCE_DIR}/deps/Syphon-Framework")
-    if(EXISTS "${SYPHON_FRAMEWORK_PATH}/CMakeLists.txt")
-        message(STATUS "Building Syphon from source using CMake for ${CURRENT_ARCH}")
+    set(SYPHON_FRAMEWORK_BUILD_PATH "${SYPHON_FRAMEWORK_PATH}/build/Release/Syphon.framework")
+    
+    if(EXISTS "${SYPHON_FRAMEWORK_BUILD_PATH}")
+        message(STATUS "Using pre-built Syphon framework for ${CURRENT_ARCH}")
         
-        # Include ExternalProject for building Syphon
-        include(ExternalProject)
+        # Add the framework headers with highest priority (BEFORE SYSTEM)
+        target_include_directories(${PLUGIN_NAME} BEFORE PRIVATE "${SYPHON_FRAMEWORK_BUILD_PATH}/Headers")
+        target_include_directories(${PLUGIN_NAME} BEFORE PRIVATE "${SYPHON_FRAMEWORK_PATH}")
         
-        # Set the Syphon build directory
-        set(SYPHON_BUILD_DIR "${CMAKE_CURRENT_BINARY_DIR}/syphon-build")
+        # Link the pre-built framework
+        target_link_libraries(${PLUGIN_NAME} PRIVATE "${SYPHON_FRAMEWORK_BUILD_PATH}")
         
-        # Configure and build Syphon using CMake
-        ExternalProject_Add(SyphonFramework
-            SOURCE_DIR "${SYPHON_FRAMEWORK_PATH}"
-            BINARY_DIR "${SYPHON_BUILD_DIR}"
-            CMAKE_ARGS
-                -DCMAKE_OSX_ARCHITECTURES=${CURRENT_ARCH}
-                -DCMAKE_INSTALL_PREFIX=${SYPHON_BUILD_DIR}
-                -DCMAKE_BUILD_TYPE=Release
-            BUILD_COMMAND ${CMAKE_COMMAND} --build . --config Release
-            INSTALL_COMMAND ${CMAKE_COMMAND} --build . --target install
+        # Explicitly exclude system Syphon framework
+        target_compile_options(${PLUGIN_NAME} PRIVATE 
+            -iframework "${SYPHON_FRAMEWORK_BUILD_PATH}/.."
         )
-        
-        # Use local headers for compilation and link static library
-        add_dependencies(${PLUGIN_NAME} SyphonFramework)
-        target_include_directories(${PLUGIN_NAME} SYSTEM BEFORE PRIVATE "${SYPHON_BUILD_DIR}/include")
-        target_link_libraries(${PLUGIN_NAME} PRIVATE "${SYPHON_BUILD_DIR}/lib/libSyphon.a")
-        
         # Link required Apple frameworks for Syphon
         find_library(COCOA_FRAMEWORK Cocoa)
         find_library(OPENGL_FRAMEWORK OpenGL)
@@ -181,7 +171,7 @@ if(APPLE)
         
         message(STATUS "Main Syphon output configured (filter disabled to avoid conflicts)")
     else()
-        message(FATAL_ERROR "Could not find Syphon framework source at ${SYPHON_FRAMEWORK_PATH}")
+        message(FATAL_ERROR "Could not find pre-built Syphon framework at ${SYPHON_FRAMEWORK_BUILD_PATH}")
     endif()
     
     # Ensure proper compilation of Objective-C++ files

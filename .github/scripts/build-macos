@@ -95,6 +95,46 @@ build() {
 
   pushd ${project_root}
 
+  # Build Syphon Framework first if needed (macOS-specific dependency)
+  log_group "Building Syphon Framework..."
+  local syphon_framework_path="deps/Syphon-Framework"
+  local syphon_build_path="${syphon_framework_path}/build/Release/Syphon.framework"
+  
+  if [[ ! -d "${syphon_build_path}" ]] {
+    log_info "Syphon framework not found, building from source..."
+    
+    if [[ ! -d "${syphon_framework_path}" ]] {
+      log_error "Syphon Framework source not found at ${syphon_framework_path}"
+      log_error "Make sure the submodule is properly initialized"
+      exit 1
+    }
+    
+    pushd "${syphon_framework_path}"
+    
+    # Build Syphon framework using xcodebuild
+    xcodebuild \
+      -project Syphon.xcodeproj \
+      -target Syphon \
+      -configuration Release \
+      -arch arm64 \
+      -arch x86_64 \
+      ARCHS="arm64 x86_64" \
+      ONLY_ACTIVE_ARCH=NO \
+      MACOSX_DEPLOYMENT_TARGET=11.0 \
+      build
+    
+    popd
+    
+    if [[ ! -d "${syphon_build_path}" ]] {
+      log_error "Failed to build Syphon framework"
+      exit 1
+    }
+    
+    log_info "Syphon framework built successfully"
+  } else {
+    log_info "Syphon framework already built"
+  }
+
   local -a cmake_args=()
   local -a cmake_build_args=(--build)
   local -a cmake_install_args=(--install)

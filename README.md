@@ -1,5 +1,11 @@
 # **obs‑syphon‑server** – Technical Design & Implementation Guide
 
+> ⚠️ **macOS Only**: This plugin uses the Syphon framework which is exclusive to macOS. It will not build or run on Windows or Linux.
+
+---
+
+## 0 Context & Namingbs‑syphon‑server** – Technical Design & Implementation Guide
+
 ---
 
 ## 0 Context & Naming
