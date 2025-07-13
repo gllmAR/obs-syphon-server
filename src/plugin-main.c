@@ -40,16 +40,16 @@ bool obs_module_load(void)
 #ifdef __APPLE__
 	// Register the Syphon server output using the new function
 	register_syphon_output();
-	
+
 	// Register the Syphon server filter (temporarily disabled due to symbol conflicts)
 	// TODO: Re-enable once dynamic loading is properly implemented
 	// obs_register_source(&sy_filter_info);
 	// obs_log(LOG_INFO, "[syphon] Registered Syphon server filter");
-	
+
 	// Start the main server automatically
 	syphon_main_server_start();
 	obs_log(LOG_INFO, "[syphon] Auto-started main server");
-	
+
 	obs_log(LOG_INFO, "[syphon] Plugin loaded successfully (version %s)", plugin_version);
 	return true;
 #else

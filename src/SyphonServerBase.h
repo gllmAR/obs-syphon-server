@@ -35,7 +35,7 @@ NS_ASSUME_NONNULL_BEGIN
  @relates SyphonServerBase
  If this key is matched with a NSNumber with a BOOL value YES, then the server will be invisible to other Syphon users. You are then responsible for passing the NSDictionary returned by serverDescription to processes which require it to create a SyphonClient. Default is NO.
  */
-extern NSString * const SyphonServerOptionIsPrivate;
+extern NSString *const SyphonServerOptionIsPrivate;
 
 @interface SyphonServerBase : NSObject
 
@@ -48,16 +48,17 @@ extern NSString * const SyphonServerOptionIsPrivate;
  @param options A dictionary containing key-value pairs to specify options for the server. Currently supported options are SyphonServerOptionIsPrivate, plus any added by the subclass. See their descriptions for details.
  @returns A newly intialized Syphon server. Nil on failure.
 */
-- (instancetype)initWithName:(nullable NSString*)serverName options:(nullable NSDictionary<NSString *, id> *)options NS_DESIGNATED_INITIALIZER;
+- (instancetype)initWithName:(nullable NSString *)serverName
+                     options:(nullable NSDictionary<NSString *, id> *)options NS_DESIGNATED_INITIALIZER;
 /*!
  A string representing the name of the server.
  */
-@property (strong) NSString* name;
+@property (strong) NSString *name;
 
 /*!
  A dictionary describing the server. Normally you won't need to access this, however if you created the server as private (using SyphonServerOptionIsPrivate) then you must pass this dictionary to any process in which you wish to create a SyphonClient. You should not rely on the presence of any particular keys in this dictionary.
  */
-@property (readonly) NSDictionary<NSString *, id<NSCoding>>* serverDescription;
+@property (readonly) NSDictionary<NSString *, id<NSCoding>> *serverDescription;
 
 /*!
  YES if clients are currently attached, NO otherwise. If you generate frames frequently (for instance on a display-link timer), you may choose to test this and only call publishFrameTexture:textureTarget:imageRegion:textureDimensions:flipped: when clients are attached.

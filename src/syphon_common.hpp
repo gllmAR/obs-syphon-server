@@ -37,28 +37,29 @@ extern "C" {
 
 // Forward declarations for Objective-C types when not in Objective-C context
 #ifndef __OBJC__
-typedef void* SyphonOpenGLServer;
-typedef void* SyphonMetalServer;
+typedef void *SyphonOpenGLServer;
+typedef void *SyphonMetalServer;
 #endif
 
 // Common server structure
 struct sy_server {
 #ifdef __OBJC__
-    SyphonOpenGLServer *server;
-    void (^publish)(gs_texture_t *tex, uint32_t width, uint32_t height);
+	SyphonOpenGLServer *server;
+	void (^publish)(gs_texture_t *tex, uint32_t width, uint32_t height);
 #else
-    void *server;
-    void *publish;
+	void *server;
+	void *publish;
 #endif
-    bool is_metal;
-    char *name;
+	bool is_metal;
+	char *name;
 };
 
 // Function declarations
 void sy_server_init(struct sy_server *srv, const char *name);
 void sy_server_destroy(struct sy_server *srv);
 void sy_server_publish_frame(struct sy_server *srv, gs_texture_t *tex, uint32_t width, uint32_t height);
-void sy_server_publish_raw_frame(struct sy_server *srv, uint8_t *data, uint32_t width, uint32_t height, uint32_t linesize);
+void sy_server_publish_raw_frame(struct sy_server *srv, uint8_t *data, uint32_t width, uint32_t height,
+				 uint32_t linesize);
 
 // Main server functions for automatic capture
 void syphon_main_server_start(void);

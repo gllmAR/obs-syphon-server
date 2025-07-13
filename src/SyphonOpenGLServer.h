@@ -37,25 +37,25 @@ NS_ASSUME_NONNULL_BEGIN
  @relates SyphonServerBase
  If this key is matched with a `NSNumber` with a BOOL value `YES`, then the server will be invisible to other Syphon users. You are then responsible for passing the `NSDictionary` returned by ``serverDescription`` to processes which require it to create a Syphon client. Default is `NO`.
  */
-extern NSString * const SyphonServerOptionIsPrivate;
+extern NSString *const SyphonServerOptionIsPrivate;
 
 /*!
  @relates SyphonServerBase
  If this key is matched with a `NSNumber` with a `NSUInteger` value greater than zero, the server will, when using the ``SyphonOpenGLServer/bindToDrawFrameOfSize:`` / ``SyphonOpenGLServer/unbindAndPublish`` API, render to an antialiased render buffer with the requested multisample count (via the FBO MSAA and BLIT extensions). Default sample count is 0 should this key be ommited, indicating no antialiased buffers will be used. If the requested sample count is not supported by the GL context, the nearest supported sample count will be used instead. If MSAA is not supported at all, this key will be ignored and the server will render without the antialiasing stage.
  */
-extern NSString * const SyphonServerOptionAntialiasSampleCount;
+extern NSString *const SyphonServerOptionAntialiasSampleCount;
 
 /*!
  @relates SyphonServerBase
  If this key is matched with a `NSNumber` with an integer value greater than zero, the server will render to an FBO with a depth buffer attached. The value provided should indicate the desired resolution of the buffer: 16, 24 or 32. The server will always attempt to attach a depth buffer when one is requested, however it may create one of a resolution other than that requested. This has useful effect only when using the ``SyphonOpenGLServer/bindToDrawFrameOfSize:`` / ``SyphonOpenGLServer/unbindAndPublish`` API.
  */
-extern NSString * const SyphonServerOptionDepthBufferResolution;
+extern NSString *const SyphonServerOptionDepthBufferResolution;
 
 /*!
  @relates SyphonServerBase
  If this key is matched with a `NSNumber` with an integer value greater than zero, the server will render to an FBO with a stencil buffer attached. The value provided should indicate the desired resolution of the buffer: 1, 4, 8 or 16. The server will always attempt to attach a stencil buffer when one is requested, however it may create one of a resolution other than that requested.
  */
-extern NSString * const SyphonServerOptionStencilBufferResolution;
+extern NSString *const SyphonServerOptionStencilBufferResolution;
 
 @class SyphonOpenGLImage;
 
@@ -80,7 +80,9 @@ extern NSString * const SyphonServerOptionStencilBufferResolution;
  @param options A dictionary containing key-value pairs to specify options for the server.
  @returns A newly intialized ``SyphonOpenGLServer``. `nil` on failure.
 */
-- (instancetype)initWithName:(nullable NSString*)serverName context:(CGLContextObj)context options:(nullable NSDictionary<NSString *, id> *)options;
+- (instancetype)initWithName:(nullable NSString *)serverName
+                     context:(CGLContextObj)context
+                     options:(nullable NSDictionary<NSString *, id> *)options;
 
 /*!
  The `CGLContext` the server uses for drawing. This may or may not be the context passed in at init.
@@ -90,12 +92,12 @@ extern NSString * const SyphonServerOptionStencilBufferResolution;
 /*! 
  A string representing the name of the server.
 */
-@property (nullable, strong) NSString* name;
+@property (nullable, strong) NSString *name;
 
 /*! 
  A dictionary describing the server. Normally you won't need to access this, however if you created the server as private (using ``SyphonServerOptionIsPrivate``) then you must pass this dictionary to any process in which you wish to create a SyphonClient. You should not rely on the presence of any particular keys in this dictionary.
 */
-@property (readonly) NSDictionary<NSString *, id<NSCoding>>* serverDescription;
+@property (readonly) NSDictionary<NSString *, id<NSCoding>> *serverDescription;
 
 /*! 
 `YES` if clients are currently attached, `NO` otherwise. If you generate frames frequently (for instance on a display-link timer), you may choose to test this and only call ``publishFrameTexture:textureTarget:imageRegion:textureDimensions:flipped:`` when clients are attached.
@@ -115,7 +117,11 @@ extern NSString * const SyphonServerOptionStencilBufferResolution;
  @param size The full size of the texture
  @param isFlipped Is the texture flipped?
 */
-- (void)publishFrameTexture:(GLuint)texID textureTarget:(GLenum)target imageRegion:(NSRect)region textureDimensions:(NSSize)size flipped:(BOOL)isFlipped;
+- (void)publishFrameTexture:(GLuint)texID
+              textureTarget:(GLenum)target
+                imageRegion:(NSRect)region
+          textureDimensions:(NSSize)size
+                    flipped:(BOOL)isFlipped;
 
 /*! 
  Binds an FBO for you to publish a frame of the given dimensions by drawing into the server's context (check it using the context property). If YES is returned, you must pair this with a call to ``unbindAndPublish`` once you have finished drawing. If NO is returned you should abandon drawing and not call ``unbindAndPublish``.
