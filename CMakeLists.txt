@@ -2,18 +2,18 @@ cmake_minimum_required(VERSION 3.16)
 
 project(obs-syphon-server VERSION 1.0.0 LANGUAGES C CXX)
 
-# For macOS, build for current architecture (force arm64 in CI)
+# For macOS, build for current architecture or universal binary
 if(APPLE)
-  if(DEFINED ENV{CI})
-    # In CI, force arm64 to match OBS installation
-    set(CURRENT_ARCH "arm64")
-    message(STATUS "CI detected - forcing architecture to: arm64")
+  # Check if we're building with Xcode (which handles multi-arch via build args)
+  if(CMAKE_GENERATOR STREQUAL "Xcode")
+    # Let Xcode handle architecture via build arguments
+    message(STATUS "Using Xcode generator - architecture will be set by build arguments")
   else()
+    # For other generators, detect current architecture
     execute_process(COMMAND uname -m OUTPUT_VARIABLE CURRENT_ARCH OUTPUT_STRIP_TRAILING_WHITESPACE)
-    message(STATUS "Local build - detected architecture: ${CURRENT_ARCH}")
+    set(CMAKE_OSX_ARCHITECTURES "${CURRENT_ARCH}")
+    message(STATUS "Setting macOS architecture to: ${CURRENT_ARCH}")
   endif()
-  set(CMAKE_OSX_ARCHITECTURES "${CURRENT_ARCH}")
-  message(STATUS "Setting macOS architecture to: ${CURRENT_ARCH}")
 endif()
 
 # Set C++ standard

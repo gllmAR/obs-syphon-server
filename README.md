@@ -1,201 +1,162 @@
-# **obs‑syphon‑server** – Technical Design & Implementation Guide
+# OBS Syphon Server Plugin
 
-> ⚠️ **macOS Only**: This plugin uses the Syphon framework which is exclusive to macOS. It will not build or run on Windows or Linux.
+> **🍎 macOS Only**: This plugin uses the Syphon framework which is exclusive to macOS. It will not build or run on Windows or Linux.
 
----
+A plugin for OBS Studio that publishes video output via Syphon, enabling seamless video sharing with other macOS applications like VDMX, Resolume, Quartz Composer, and other Syphon-enabled software.
 
-## 0 Context & Namingbs‑syphon‑server** – Technical Design & Implementation Guide
+## What is Syphon?
 
----
+[Syphon](http://syphon.v002.info/) is a real-time video sharing framework for macOS that allows applications to share frames with one another in real-time with minimal overhead. Think of it as a high-performance, low-latency video pipeline between applications on the same Mac.
 
-## 0 Context & Naming
+## Features
 
-*Working title*: **obs‑syphon‑server**
-We intentionally mirror the naming of **DistroAV** (formerly *OBS‑NDI*) because our functional map is almost 1‑to‑1 – replacing the NDI transport layer with **Syphon** on macOS.
+- **Main Output**: Publishes OBS Studio's main program output as a Syphon server
+- **Low Latency**: Near-zero latency video sharing between applications
+- **High Performance**: GPU-optimized with both OpenGL and Metal support
+- **Easy Integration**: Works with any Syphon-enabled application
+- **Automatic Detection**: Appears in Syphon clients as "OBS Studio"
 
-*Plugin id strings*:
+## How It Works
 
-| Feature                              | C identifier           | UI label                    |
-| ------------------------------------ | ---------------------- | --------------------------- |
-| **Program feed publisher**           | `syphon_server_output` | *Syphon ‑ Main Output*      |
-| **Dedicated source/scene publisher** | `syphon_server_filter` | *Syphon ‑ Dedicated Output* |
+The plugin creates a Syphon server that publishes OBS Studio's main program output. Other applications can then receive this video feed in real-time through the Syphon framework.
 
----
-
-## 1 Project Goals & Milestones
-
-| Phase  | Deliverable                                                                         | Reference implementation in **DistroAV**                                               |
-| ------ | ----------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------- |
-| **P1** | Working **Syphon server** that publishes the active *Program* framebuffer.          | `src/ndi-output/ndi-output.cpp` (`ndi_output_info` + `obs_output_update()` life‑cycle) |
-| **P2** | **Filter** that can be attached to any scene/source to publish that single texture. | `src/ndi-filter/ndi-filter.cpp` (`obs_source_info` + `video_render`)                   |
-| **P3** | Qt dock for start/stop & server‑name field, universal2 binary, codesigning.         | `tools/qt/ndi-settings.cpp`                                                            |
-| **P4** | Metal path, colour‑space tags, multi‑feed support (Program+Preview).                | DistroAV ≥ 6.0 multi‑output branch                                                     |
-
-We treat **P1** and **P2** as hard Requirements; everything else is “reach”.
-
----
-
-## 2 Key External References
-
-| Topic                      | Source                                                                                                                   | Why it matters                                                                                          |
-| -------------------------- | ------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------- |
-| DistroAV output life‑cycle | [`DistroAV/src/ndi-output/ndi-output.cpp`](https://github.com/DistroAV/DistroAV/blob/main/src/ndi-output/ndi-output.cpp) | Shows a battle‑tested pattern for *obs\_output\_info* with proper `start`/`stop`/`raw_video` callbacks. |
-| DistroAV filter pattern    | [`DistroAV/src/ndi-filter/ndi-filter.cpp`](https://github.com/DistroAV/DistroAV/blob/main/src/ndi-filter/ndi-filter.cpp) | Minimal filter that publishes its last rendered texture each frame.                                     |
-| Graphics device helpers    | [`libobs/graphics/gs-*`](https://github.com/obsproject/obs-studio/tree/master/libobs/graphics)                           | `gs_get_device_type()`, `gs_texture_get_mtl_texture()`.                                                 |
-| Syphon Metal path          | [`SyphonMetalServer.h`](https://github.com/Syphon/Syphon-Framework/blob/main/SyphonMetalServer.h)                        | How to publish `id<MTLTexture>` directly.                                                               |
-| Syphon GL path             | [`SyphonServer.h`](https://github.com/Syphon/Syphon-Framework/blob/main/SyphonServer.h)                                  | Legacy GL publishing.                                                                                   |
-
----
-
-## 3 Architecture (Phase 1 & 2)
-
-```mermaid
-graph TD
-    subgraph OBS Core
-        R[Render Thread]
-        O[obs_output_info<br>"syphon_server_output"]
-        F[obs_source_info<br>"syphon_server_filter"]
-    end
-    subgraph Transport Layer
-        S[(SyphonServer /<br>SyphonMetalServer)]
-    end
-    R -->|framebuffer RGBA| O -->|publishFrameTexture| S
-    R --> F --> S
+```
+┌─────────────┐    Syphon    ┌─────────────┐
+│             │   ────────►  │             │
+│ OBS Studio  │              │ VDMX/       │
+│ (Server)    │   GPU Memory │ Resolume/   │
+│             │   ◄────────  │ Other Apps  │
+└─────────────┘              └─────────────┘
 ```
 
-*Program output* (`O`) mirrors DistroAV’s *NDI Output*, but we only need un‑encoded RGBA.
-*Filter* (`F`) copies DistroAV’s *NDI Filter* verbatim – except the transport call.
+## Installation
 
----
+### Prerequisites
+- macOS 11.0 (Big Sur) or later
+- OBS Studio 28.0 or later
+- Applications that support Syphon input
 
-## 4 Phase‑1 Implementation: **Program Publisher**
+### Download & Install
+1. Download the latest release from the [Releases page](../../releases)
+2. Extract the plugin bundle
+3. Copy `obs-syphon-server.plugin` to your OBS plugins directory:
+   ```
+   ~/Library/Application Support/obs-studio/plugins/
+   ```
+4. Restart OBS Studio
 
-### 4.1 File: `syphon_output.mm`
-
-```cpp
-struct sy_output_data {
-    obs_output_t   *context = nullptr;
-    gs_texrender_t *tex     = nullptr;
-    sy_server       srv;          // see common header
-    bool            running = false;
-};
+### Build from Source
+```bash
+git clone --recursive https://github.com/gllmAR/obs-syphon-server.git
+cd obs-syphon-server
+cmake --preset macos
+cmake --build --preset macos
 ```
 
-| Callback    | DistroAV analogue      | Core logic                                                             |
-| ----------- | ---------------------- | ---------------------------------------------------------------------- |
-| `create`    | `ndi_output_create`    | `gs_texrender_create`; init Syphon server with name **"OBS‑Program"**. |
-| `start`     | `ndi_output_start`     | `running=true;` return `true`.                                         |
-| `stop`      | `ndi_output_stop`      | `_stop_server()`, `running=false`.                                     |
-| `raw_video` | `ndi_output_raw_video` | Render Program scene ➜ `gs_texrender_end` ➜ `publishFrameTexture`.     |
-| `destroy`   | same                   | Free texture; `[srv.server stop]`.                                     |
+## Usage
 
-> **Tip:** Copy the log pattern from DistroAV (`blog(LOG_INFO, "[syphon] …")`) for easy grep.
+### Basic Setup
+1. Install the plugin in OBS Studio
+2. The plugin automatically starts publishing your main program output as "OBS Studio"
+3. Open any Syphon-enabled application
+4. Look for "OBS Studio" in the Syphon server list
+5. Select it to receive the video feed
 
-### 4.2 Graphics Backend Switch
+### Syphon-Compatible Applications
+- **Video Mixing**: VDMX, Resolume Arena/Avenue, Modul8
+- **Live Graphics**: Quartz Composer, TouchDesigner, Max/MSP/Jitter
+- **Streaming**: Wirecast, mimoLive, Ecamm Live
+- **Recording**: Syphon Recorder, ScreenSearch
+- **Development**: Unity, Unreal Engine, openFrameworks, Cinder
 
-```cpp
-bool metal = gs_get_device_type() == GS_DEVICE_TYPE_METAL;
-if (metal) {
-    id<MTLDevice> dev = gs_mtl_get_device();
-    srv.server = [[SyphonMetalServer alloc] initWithName:name device:dev options:nil];
-    srv.publish = ^(gs_texture_t *tex, uint32_t w, uint32_t h){
-        [srv.server publishFrameTexture:gs_texture_get_mtl_texture(tex)
-                            imageRegion:NSMakeRect(0,0,w,h)
-                               frameTime:CVGetCurrentHostTime()];};
-} else {
-    CGLContextObj ctx = CGLGetCurrentContext();
-    srv.server = [[SyphonServer alloc] initWithName:name context:ctx options:nil];
-    srv.publish = ^(gs_texture_t *tex, uint32_t w, uint32_t h){
-        GLuint id = gs_texture_get_ogl_name(tex);
-        [srv.server publishFrameTexture:id textureTarget:GL_TEXTURE_2D imageRegion:NSMakeRect(0,0,w,h) frameTime:CVGetCurrentHostTime()];};
-}
-```
+### Performance Tips
+- **Metal Backend**: Use OBS Studio with Metal rendering for best performance
+- **Resolution**: Higher resolutions require more GPU memory and bandwidth
+- **Frame Rate**: Match your OBS output frame rate with receiving applications
 
----
+## Configuration
 
-## 5 Phase‑2 Implementation: **Dedicated Output Filter**
+The plugin currently has minimal configuration options:
+- **Server Name**: Fixed as "OBS Studio" (may be configurable in future versions)
+- **Auto-Start**: Automatically starts when OBS Studio launches
+- **Format**: Publishes in RGBA format at your OBS canvas resolution
 
-### 5.1 File: `syphon_filter.mm`
+## Troubleshooting
 
-*Clone* DistroAV’s filter skeleton (<20 LOC):
+### Plugin Not Loading
+- Ensure you're running macOS 11.0 or later
+- Verify OBS Studio version is 28.0 or later
+- Check that the plugin is in the correct directory
+- Restart OBS Studio after installation
 
-```cpp
-struct sy_filter_data {
-    sy_server srv;
-};
+### No Syphon Output
+- Verify OBS Studio is actively outputting video
+- Check that your canvas has content
+- Ensure receiving application supports Syphon input
+- Try restarting both OBS Studio and the receiving application
 
-static void sy_filter_render(void *data, gs_effect_t *)
-{
-    auto *d = static_cast<sy_filter_data *>(data);
-    obs_source_t *target = obs_filter_get_target(filter);
-    if (!target) return;
+### Performance Issues
+- Lower your OBS canvas resolution
+- Reduce frame rate if necessary
+- Close unnecessary applications
+- Use Metal rendering in OBS Studio preferences
 
-    // Draw child source
-    obs_source_video_render(target);
+### Compatibility
+- Some older Syphon applications may not see the server immediately
+- Metal-based Syphon apps will have better performance than OpenGL-based ones
 
-    // Publish last texture
-    gs_texture_t *tex = obs_filter_get_last_tex(filter);
-    if (tex && d->srv.server) {
-        d->srv.publish(tex, gs_texture_get_width(tex), gs_texture_get_height(tex));
-    }
-}
-```
+## Technical Details
 
-Other callbacks (`create`, `destroy`, `get_name`) are literal copies of `ndi_filter.cpp` with type names changed.
+### Architecture
+- **Main Output Publisher**: Captures OBS program output and publishes via Syphon
+- **Dual Graphics Support**: Optimized paths for both OpenGL and Metal
+- **Zero-Copy Pipeline**: Direct GPU memory sharing where possible
+- **Minimal CPU Overhead**: GPU-based processing throughout
 
----
+### Syphon Server Details
+- **Server Name**: "OBS Studio"
+- **Format**: RGBA (32-bit per pixel)
+- **Color Space**: sRGB
+- **Frame Rate**: Matches OBS output frame rate
+- **Resolution**: Matches OBS canvas resolution
 
-## 6 Build System
+## Development
 
-### 6.1 Compare to DistroAV
+### Contributing
+This project welcomes contributions! Please see our [Contributing Guidelines](CONTRIBUTING.md) for details.
 
-| Item               | DistroAV           | obs‑syphon‑server                    |
-| ------------------ | ------------------ | ------------------------------------ |
-| `ADD_SUBDIRECTORY` | `plugins/distroav` | `plugins/obs-syphon-server`          |
-| Extra libs         | `libndi`           | none (Syphon is a framework)         |
-| Frameworks         | none               | `Syphon`, `OpenGL`, `Metal`, `Cocoa` |
-| Defines            | `HAVE_NDI`         | none                                 |
+### Architecture Reference
+The plugin is inspired by the [DistroAV NDI plugin](https://github.com/DistroAV/DistroAV) architecture, replacing NDI transport with Syphon:
 
-### 6.2 Minimal CMakeLists snippet
+- **Output Module**: Publishes main program feed (`syphon_output.mm`)
+- **Common Framework**: Shared Syphon integration (`syphon_common.mm`)
+- **Metal/OpenGL Support**: Automatic backend detection and optimization
 
-```cmake
-find_library(SYPHON_FRAMEWORK Syphon REQUIRED)
+### Building
+Requires:
+- Xcode 14+ with Command Line Tools
+- CMake 3.16+
+- OBS Studio source code (as git submodule)
+- Syphon Framework (as git submodule)
 
-add_library(obs-syphon-server MODULE
-    plugin.cpp
-    syphon_common.hpp
-    syphon_output.mm
-    syphon_filter.mm)
+## License
 
-target_link_libraries(obs-syphon-server
-    ${LIBOBS_LIB}
-    ${SYPHON_FRAMEWORK}
-    "-framework Metal" "-framework OpenGL" "-framework Cocoa")
+This project is licensed under the GPL v2 License - see the [LICENSE](LICENSE) file for details.
 
-set_target_properties(obs-syphon-server PROPERTIES
-    BUNDLE TRUE
-    BUNDLE_EXTENSION "plugin")
-```
+## Acknowledgments
 
----
-
-## 7 Testing Matrix
-
-| Scenario                            | Expected                            | Notes                                  |
-| ----------------------------------- | ----------------------------------- | -------------------------------------- |
-| OBS GL backend → VDMX               | <2 frames latency, 1080p60          | Compare with DistroAV metrics.         |
-| OBS Metal backend → Syphon Recorder | Identical latency & CPU to GL path. | Ensure Metal publishing path works.    |
-| Filter on a 4K Media Source         | 4K30 zero‑copy success              | Validate per‑source filter.            |
-| Start/Stop spam (50×)               | No leaks (`leaks` <1 KB)            | Mirrors DistroAV’s stress test script. |
+- [Syphon Framework](http://syphon.v002.info/) - Real-time video sharing framework
+- [DistroAV NDI Plugin](https://github.com/DistroAV/DistroAV) - Architecture inspiration
+- [OBS Studio](https://obsproject.com/) - Broadcasting software platform
 
 ---
 
-## 8 Future Enhancements
+## Future Enhancements
 
-* Multi‑server publish (Program + Preview) ‑ replicate DistroAV’s dual‑output toggle.
-* FPS throttle – follow `ndi_output_tick()` pattern that drops frames based on next timestamp.
-* Colour‑space dictionary – add `kSyphonServerDescriptionColorSpaceKey` once Syphon pull‑request #157 lands.
+- **Multiple Outputs**: Support for publishing preview output and individual sources
+- **Custom Server Names**: User-configurable Syphon server names
+- **UI Panel**: Qt-based control panel for advanced settings
+- **Filter Support**: Syphon output filter for individual sources
+- **Color Space Control**: Extended color space and format options
 
----
-
-Happy hacking – and remember: **if it works in DistroAV, it’s probably the right pattern here too** 🎉
+For feature requests and bug reports, please use the [GitHub Issues](../../issues) page.

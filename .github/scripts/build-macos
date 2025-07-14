@@ -112,31 +112,18 @@ build() {
     pushd "${syphon_framework_path}"
     
     # Build Syphon framework using xcodebuild
-    # In CI, only build for arm64 to match OBS installation
-    if [[ -n "${CI}" ]] {
-      log_info "CI detected - building Syphon for arm64 only"
-      xcodebuild \
-        -project Syphon.xcodeproj \
-        -target Syphon \
-        -configuration Release \
-        -arch arm64 \
-        ARCHS="arm64" \
-        ONLY_ACTIVE_ARCH=YES \
-        MACOSX_DEPLOYMENT_TARGET=11.0 \
-        build
-    } else {
-      log_info "Local build - building Syphon for multiple architectures"
-      xcodebuild \
-        -project Syphon.xcodeproj \
-        -target Syphon \
-        -configuration Release \
-        -arch arm64 \
-        -arch x86_64 \
-        ARCHS="arm64 x86_64" \
-        ONLY_ACTIVE_ARCH=NO \
-        MACOSX_DEPLOYMENT_TARGET=11.0 \
-        build
-    }
+    # Build as universal binary for maximum compatibility
+    log_info "Building Syphon as universal binary (arm64 + x86_64)"
+    xcodebuild \
+      -project Syphon.xcodeproj \
+      -target Syphon \
+      -configuration Release \
+      -arch arm64 \
+      -arch x86_64 \
+      ARCHS="arm64 x86_64" \
+      ONLY_ACTIVE_ARCH=NO \
+      MACOSX_DEPLOYMENT_TARGET=11.0 \
+      build
     
     popd
     
@@ -150,7 +137,7 @@ build() {
     log_info "Syphon framework already built"
   }
 
-  # Verify OBS Studio is available in CI (installed via Homebrew)
+  # Verify OBS Studio is available and check architecture support
   if [[ -n "${CI}" ]] {
     log_group "Verifying OBS Studio installation for CI..."
     local obs_app_path="/Applications/OBS.app"
@@ -161,7 +148,16 @@ build() {
       exit 1
     }
     
-    log_info "OBS Studio found at ${obs_app_path}"
+    # Check what architectures OBS supports
+    local obs_lib="${obs_app_path}/Contents/Frameworks/libobs.framework/Versions/A/libobs"
+    if [[ -f "${obs_lib}" ]] {
+      local obs_archs=$(file "${obs_lib}" | grep -o -E "(arm64|x86_64)" | tr '\n' ' ')
+      log_info "OBS Studio found at ${obs_app_path}"
+      log_info "OBS library architectures: ${obs_archs}"
+    } else {
+      log_error "OBS library not found at expected location"
+      exit 1
+    }
   }
 
   local -a cmake_args=()
@@ -195,6 +191,7 @@ build() {
     }
   }
 
+  # Configure build arguments for universal binary
   local -a build_args=(
     ONLY_ACTIVE_ARCH=NO
     -arch arm64
@@ -207,6 +204,8 @@ build() {
     -hideShellScriptEnvironment
     build
   )
+  
+  log_info "Building universal binary (arm64 + x86_64)"
 
   pushd build_macos
   run_xcodebuild ${build_args}
