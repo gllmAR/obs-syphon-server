@@ -1,0 +1,45 @@
+#!/bin/bash
+
+# Postinstall script for OBS Syphon Server Plugin
+# This script copies the plugin from the temporary location to the user's OBS plugins directory
+
+set -e
+
+PLUGIN_NAME="obs-syphon-server"
+TEMP_PLUGIN_PATH="/tmp/obs-syphon-server/${PLUGIN_NAME}.plugin"
+
+# Get the current user (the one running the installer)
+CURRENT_USER="${USER:-$(whoami)}"
+if [ "$CURRENT_USER" = "root" ]; then
+    # If running as root (via sudo), get the actual user
+    CURRENT_USER="${SUDO_USER:-$(logname 2>/dev/null || echo $(stat -f%Su /dev/console))}"
+fi
+
+USER_HOME=$(eval echo "~${CURRENT_USER}")
+PLUGINS_DIR="${USER_HOME}/Library/Application Support/obs-studio/plugins"
+
+echo "Installing OBS Syphon Server Plugin for user: ${CURRENT_USER}"
+echo "Plugin will be installed to: ${PLUGINS_DIR}"
+
+# Create the plugins directory if it doesn't exist
+mkdir -p "${PLUGINS_DIR}"
+
+# Copy the plugin to the user's plugins directory
+if [ -d "${TEMP_PLUGIN_PATH}" ]; then
+    echo "Copying plugin from ${TEMP_PLUGIN_PATH} to ${PLUGINS_DIR}/"
+    cp -R "${TEMP_PLUGIN_PATH}" "${PLUGINS_DIR}/"
+    
+    # Set proper ownership
+    chown -R "${CURRENT_USER}:staff" "${PLUGINS_DIR}/${PLUGIN_NAME}.plugin"
+    
+    echo "Plugin installed successfully!"
+    echo "Please restart OBS Studio to load the plugin."
+else
+    echo "Error: Plugin not found at ${TEMP_PLUGIN_PATH}"
+    exit 1
+fi
+
+# Clean up temporary files
+rm -rf "/tmp/obs-syphon-server"
+
+exit 0

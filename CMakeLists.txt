@@ -320,10 +320,10 @@ After installation, restart OBS Studio to load the plugin.
     DEPENDS ${PLUGIN_NAME}
     COMMAND
       ${CMAKE_COMMAND} -E make_directory
-      "${CMAKE_BINARY_DIR}/pkg-staging/Library/Application Support/obs-studio/plugins"
+      "${CMAKE_BINARY_DIR}/pkg-staging/tmp/obs-syphon-server"
     COMMAND
       ${CMAKE_COMMAND} -E copy_directory "$<TARGET_BUNDLE_DIR:${PLUGIN_NAME}>"
-      "${CMAKE_BINARY_DIR}/pkg-staging/Library/Application Support/obs-studio/plugins/${PLUGIN_NAME}.plugin"
+      "${CMAKE_BINARY_DIR}/pkg-staging/tmp/obs-syphon-server/${PLUGIN_NAME}.plugin"
     COMMAND
       /usr/bin/pkgbuild --root "${CMAKE_BINARY_DIR}/pkg-staging" --scripts "${INSTALLER_SCRIPTS_DIR}" --identifier
       "com.obsproject.${PLUGIN_NAME}" --version "${PLUGIN_VERSION}" --install-location "/"

@@ -111,7 +111,11 @@ package() {
       
       log_group "Archiving ${product_name}..."
       pushd ${project_root}/release/${config}
-      XZ_OPT=-T0 tar -cvJf ${project_root}/release/${output_name}.tar.xz ${product_name}.plugin
+      
+      # Copy installation instructions
+      cp ${project_root}/INSTALLATION.md .
+      
+      XZ_OPT=-T0 tar -cvJf ${project_root}/release/${output_name}.tar.xz ${product_name}.plugin INSTALLATION.md
       popd
       
       if [[ ${config} == Release ]] {
