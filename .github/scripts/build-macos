@@ -299,6 +299,12 @@ build() {
 
   log_group "Creating installer package..."
   cmake --build build_macos --target create-installer --config ${config}
+  
+  # Copy installer package to release directory
+  if [[ -f "build_macos/${product_name}.pkg" ]]; then
+    cp "build_macos/${product_name}.pkg" "${project_root}/release/${config}/"
+    log_info "Installer package created: release/${config}/${product_name}.pkg"
+  fi
 
   popd
   log_group

@@ -257,14 +257,16 @@ if(APPLE)
   # Create macOS installer package (.pkg)
   set(INSTALLER_SCRIPTS_DIR "${CMAKE_BINARY_DIR}/installer")
   set(INSTALLER_RESOURCES_DIR "${INSTALLER_SCRIPTS_DIR}/Resources")
-  
+
   # Create installer scripts directory
   file(MAKE_DIRECTORY "${INSTALLER_SCRIPTS_DIR}")
   file(MAKE_DIRECTORY "${INSTALLER_RESOURCES_DIR}")
-  
+
   # Create postinstall script to install plugin to user directory
-  file(WRITE "${INSTALLER_SCRIPTS_DIR}/postinstall"
-"#!/bin/bash
+  file(
+    WRITE
+    "${INSTALLER_SCRIPTS_DIR}/postinstall"
+    "#!/bin/bash
 set -e
 
 # Get the user who invoked the installer (not root)
@@ -283,15 +285,21 @@ chown -R \"\${REAL_USER}:staff\" \"\${USER_PLUGINS_DIR}/${PLUGIN_NAME}.plugin\"
 rm -rf \"/tmp/${PLUGIN_NAME}.plugin\"
 
 exit 0
-")
-  
+"
+  )
+
   # Make postinstall script executable
-  file(CHMOD "${INSTALLER_SCRIPTS_DIR}/postinstall" 
-    PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE)
-  
+  file(
+    CHMOD
+    "${INSTALLER_SCRIPTS_DIR}/postinstall"
+    PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE
+  )
+
   # Create Welcome.txt for installer
-  file(WRITE "${INSTALLER_RESOURCES_DIR}/Welcome.txt"
-"Welcome to ${PLUGIN_NAME} ${PLUGIN_VERSION}
+  file(
+    WRITE
+    "${INSTALLER_RESOURCES_DIR}/Welcome.txt"
+    "Welcome to ${PLUGIN_NAME} ${PLUGIN_VERSION}
 
 This installer will install the OBS Syphon Server Plugin to your OBS Studio plugins directory.
 
@@ -303,19 +311,17 @@ Requirements:
 - Apple Silicon (arm64) or Intel (x86_64) Mac
 
 After installation, restart OBS Studio to load the plugin.
-")
+"
+  )
 
   # Custom target to create installer package
   add_custom_target(
     create-installer
     DEPENDS ${PLUGIN_NAME}
     COMMAND ${CMAKE_COMMAND} -E copy_directory "$<TARGET_BUNDLE_DIR:${PLUGIN_NAME}>" "/tmp/${PLUGIN_NAME}.plugin"
-    COMMAND /usr/bin/pkgbuild
-      --root /tmp
-      --scripts "${INSTALLER_SCRIPTS_DIR}"
-      --identifier "com.obsproject.${PLUGIN_NAME}"
-      --version "${PLUGIN_VERSION}"
-      "${CMAKE_INSTALL_PREFIX}/${PLUGIN_NAME}.pkg"
+    COMMAND
+      /usr/bin/pkgbuild --root /tmp --scripts "${INSTALLER_SCRIPTS_DIR}" --identifier "com.obsproject.${PLUGIN_NAME}"
+      --version "${PLUGIN_VERSION}" "${CMAKE_BINARY_DIR}/${PLUGIN_NAME}.pkg"
     COMMAND ${CMAKE_COMMAND} -E remove_directory "/tmp/${PLUGIN_NAME}.plugin"
     COMMENT "Creating macOS installer package for ${PLUGIN_NAME}"
   )
