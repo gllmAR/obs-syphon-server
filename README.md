@@ -38,34 +38,25 @@ The plugin creates a Syphon server that publishes OBS Studio's main program outp
 
 ### Download & Install
 
-**Option 1: Using the Installer Package (Recommended)**
-1. Download the `.pkg` installer from the [Releases page](../../releases)
-2. Remove quarantine attribute:
-   ```bash
-   xattr -d com.apple.quarantine obs-syphon-server-*-macos-universal.pkg
-   ```
-3. Run the installer:
-   ```bash
-   sudo installer -pkg obs-syphon-server-*-macos-universal.pkg -target /
-   ```
-4. Restart OBS Studio
-
-**Option 2: Manual Installation**
-1. Download the `.tar.xz` archive from the [Releases page](../../releases)
-2. Extract the plugin bundle:
+1. **Download** the latest release from the [Releases page](../../releases)
+2. **Extract** the archive:
    ```bash
    tar -xJf obs-syphon-server-*-macos-universal.tar.xz
+   cd obs-syphon-server-*-macos-universal/
    ```
-3. **Remove quarantine attribute (IMPORTANT):**
+3. **Install** using the included script:
    ```bash
-   sudo xattr -r -d com.apple.quarantine obs-syphon-server.plugin
+   ./install.sh
    ```
-   ⚠️ **This step is required** - macOS quarantines downloaded files and may prevent the plugin from loading.
-4. Copy `obs-syphon-server.plugin` to your OBS plugins directory:
+   Or install manually:
+   ```bash
+   xattr -r -d com.apple.quarantine obs-syphon-server.plugin
+   mkdir -p ~/Library/Application\ Support/obs-studio/plugins/
+   cp -r obs-syphon-server.plugin ~/Library/Application\ Support/obs-studio/plugins/
    ```
-   ~/Library/Application Support/obs-studio/plugins/
-   ```
-5. Restart OBS Studio
+4. **Restart** OBS Studio
+
+⚠️ **Important**: The quarantine removal step is required for downloaded plugins to work properly.
 
 ### Build from Source
 ```bash

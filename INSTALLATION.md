@@ -2,45 +2,42 @@
 
 ## Quick Installation
 
-### Option 1: Using the Installer Package (Recommended)
-If you downloaded the `.pkg` installer:
-
-1. **Remove quarantine attribute first:**
+### Option 1: Automatic Installation (Recommended)
+1. **Extract the archive:**
    ```bash
-   xattr -d com.apple.quarantine obs-syphon-server-*-macos-universal.pkg
+   tar -xJf obs-syphon-server-*-macos-universal.tar.xz
+   cd obs-syphon-server-*-macos-universal/
    ```
 
-2. **Run the installer:**
-   - Double-click the `.pkg` file, or
-   - Run from command line: `sudo installer -pkg obs-syphon-server-*-macos-universal.pkg -target /`
+2. **Run the installation script:**
+   ```bash
+   ./install.sh
+   ```
+   
+   The script will automatically:
+   - Remove quarantine attributes
+   - Install the plugin to the correct OBS directory
+   - Verify the installation
 
 3. **Restart OBS Studio**
 
-The installer will automatically install the plugin to your user's OBS plugins directory (`~/Library/Application Support/obs-studio/plugins/`).
-
 ### Option 2: Manual Installation
-If you downloaded the `.tar.xz` archive:
-
-1. **Extract the plugin:**
+1. **Extract the archive:**
    ```bash
    tar -xJf obs-syphon-server-*-macos-universal.tar.xz
    ```
 
 2. **Remove quarantine attribute (IMPORTANT):**
    ```bash
-   sudo xattr -r -d com.apple.quarantine obs-syphon-server.plugin
+   xattr -r -d com.apple.quarantine obs-syphon-server.plugin
    ```
    
    ⚠️ **This step is required** - macOS quarantines downloaded files and may prevent the plugin from loading properly.
 
 3. **Install the plugin:**
    ```bash
+   mkdir -p ~/Library/Application\ Support/obs-studio/plugins/
    cp -r obs-syphon-server.plugin ~/Library/Application\ Support/obs-studio/plugins/
-   ```
-   
-   Or manually copy the `obs-syphon-server.plugin` folder to:
-   ```
-   ~/Library/Application Support/obs-studio/plugins/
    ```
 
 4. **Restart OBS Studio**
@@ -48,14 +45,14 @@ If you downloaded the `.tar.xz` archive:
 ## Troubleshooting
 
 ### Plugin Not Loading
-- Make sure you've removed the quarantine attribute (step 2 above)
-- Verify the plugin is in the correct directory
+- Make sure you've removed the quarantine attribute 
+- Verify the plugin is in the correct directory: `~/Library/Application Support/obs-studio/plugins/`
 - Check OBS Studio logs for error messages
 
 ### Permission Issues
-If you get permission errors, you may need to use `sudo`:
+Make sure the plugin directory is writable:
 ```bash
-sudo cp -r obs-syphon-server.plugin ~/Library/Application\ Support/obs-studio/plugins/
+ls -la ~/Library/Application\ Support/obs-studio/plugins/
 ```
 
 ### Architecture Issues
