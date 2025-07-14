@@ -234,11 +234,7 @@ if(APPLE)
   set(OBS_PLUGINS_DIR "/Users/${USERNAME}/Library/Application Support/obs-studio/plugins")
 
   # Install from the configuration-specific directory (RelWithDebInfo, Debug, etc.)
-  install(
-    DIRECTORY "$<TARGET_BUNDLE_DIR:${PLUGIN_NAME}>"
-    DESTINATION "${OBS_PLUGINS_DIR}"
-    USE_SOURCE_PERMISSIONS
-  )
+  install(DIRECTORY "$<TARGET_BUNDLE_DIR:${PLUGIN_NAME}>" DESTINATION "${OBS_PLUGINS_DIR}" USE_SOURCE_PERMISSIONS)
 
   # Custom target for easy installation
   add_custom_target(

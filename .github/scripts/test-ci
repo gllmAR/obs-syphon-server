@@ -24,12 +24,26 @@ else
     exit 1
 fi
 
-# Test 3: Check if plugin was built
-PLUGIN_PATH="build_macos/bin/Release/obs-syphon-server.plugin"
-if [ -d "$PLUGIN_PATH" ]; then
-    echo "✅ Plugin bundle found at $PLUGIN_PATH"
-else
-    echo "❌ Plugin bundle not found at $PLUGIN_PATH"
+# Test 3: Check if plugin was built (try multiple possible paths)
+PLUGIN_CONFIGS=("RelWithDebInfo" "Release" "Debug")
+PLUGIN_FOUND=false
+PLUGIN_PATH=""
+
+for config in "${PLUGIN_CONFIGS[@]}"; do
+    TEST_PATH="build_macos/bin/$config/obs-syphon-server.plugin"
+    if [ -d "$TEST_PATH" ]; then
+        echo "✅ Plugin bundle found at $TEST_PATH"
+        PLUGIN_PATH="$TEST_PATH"
+        PLUGIN_FOUND=true
+        break
+    fi
+done
+
+if [ "$PLUGIN_FOUND" = false ]; then
+    echo "❌ Plugin bundle not found in any configuration directory:"
+    for config in "${PLUGIN_CONFIGS[@]}"; do
+        echo "   - build_macos/bin/$config/obs-syphon-server.plugin"
+    done
     exit 1
 fi
 
