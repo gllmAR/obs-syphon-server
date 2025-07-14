@@ -112,18 +112,61 @@ build() {
     pushd "${syphon_framework_path}"
     
     # Build Syphon framework using xcodebuild
-    # Build as universal binary for maximum compatibility
-    log_info "Building Syphon as universal binary (arm64 + x86_64)"
-    xcodebuild \
-      -project Syphon.xcodeproj \
-      -target Syphon \
-      -configuration Release \
-      -arch arm64 \
-      -arch x86_64 \
-      ARCHS="arm64 x86_64" \
-      ONLY_ACTIVE_ARCH=NO \
-      MACOSX_DEPLOYMENT_TARGET=11.0 \
-      build
+    # Build to match available OBS architectures
+    local obs_lib="/Applications/OBS.app/Contents/Frameworks/libobs.framework/Versions/A/libobs"
+    if [[ -f "${obs_lib}" ]] {
+      local obs_archs=$(file "${obs_lib}" | grep -o -E "(arm64|x86_64)" | tr '\n' ' ')
+      log_info "Building Syphon to match OBS architectures: ${obs_archs}"
+      
+      if [[ "${obs_archs}" == *"arm64"* && "${obs_archs}" == *"x86_64"* ]] {
+        # Build universal
+        xcodebuild \
+          -project Syphon.xcodeproj \
+          -target Syphon \
+          -configuration Release \
+          -arch arm64 \
+          -arch x86_64 \
+          ARCHS="arm64 x86_64" \
+          ONLY_ACTIVE_ARCH=NO \
+          MACOSX_DEPLOYMENT_TARGET=11.0 \
+          build
+      } elif [[ "${obs_archs}" == *"arm64"* ]] {
+        # Build arm64 only
+        xcodebuild \
+          -project Syphon.xcodeproj \
+          -target Syphon \
+          -configuration Release \
+          -arch arm64 \
+          ARCHS="arm64" \
+          ONLY_ACTIVE_ARCH=YES \
+          MACOSX_DEPLOYMENT_TARGET=11.0 \
+          build
+      } elif [[ "${obs_archs}" == *"x86_64"* ]] {
+        # Build x86_64 only
+        xcodebuild \
+          -project Syphon.xcodeproj \
+          -target Syphon \
+          -configuration Release \
+          -arch x86_64 \
+          ARCHS="x86_64" \
+          ONLY_ACTIVE_ARCH=YES \
+          MACOSX_DEPLOYMENT_TARGET=11.0 \
+          build
+      }
+    } else {
+      # Fallback to universal if we can't check OBS
+      log_info "Building Syphon as universal binary (could not check OBS architectures)"
+      xcodebuild \
+        -project Syphon.xcodeproj \
+        -target Syphon \
+        -configuration Release \
+        -arch arm64 \
+        -arch x86_64 \
+        ARCHS="arm64 x86_64" \
+        ONLY_ACTIVE_ARCH=NO \
+        MACOSX_DEPLOYMENT_TARGET=11.0 \
+        build
+    }
     
     popd
     
@@ -191,21 +234,61 @@ build() {
     }
   }
 
-  # Configure build arguments for universal binary
+  # Configure build arguments based on OBS architecture support
   local -a build_args=(
-    ONLY_ACTIVE_ARCH=NO
-    -arch arm64
-    -arch x86_64
     -project ${product_name}.xcodeproj
     -target ${product_name}
-    -destination "generic/platform=macOS,name=Any Mac"
     -configuration ${config}
     -parallelizeTargets
     -hideShellScriptEnvironment
     build
   )
   
-  log_info "Building universal binary (arm64 + x86_64)"
+  # Check OBS architecture support and build accordingly
+  local obs_lib="/Applications/OBS.app/Contents/Frameworks/libobs.framework/Versions/A/libobs"
+  if [[ -f "${obs_lib}" ]] {
+    local obs_archs=$(file "${obs_lib}" | grep -o -E "(arm64|x86_64)" | tr '\n' ' ')
+    log_info "OBS library architectures: ${obs_archs}"
+    
+    if [[ "${obs_archs}" == *"arm64"* && "${obs_archs}" == *"x86_64"* ]] {
+      # OBS is universal - build universal
+      build_args+=(
+        ONLY_ACTIVE_ARCH=NO
+        -arch arm64
+        -arch x86_64
+        -destination "generic/platform=macOS,name=Any Mac"
+      )
+      log_info "Building universal binary (arm64 + x86_64) to match OBS"
+    } elif [[ "${obs_archs}" == *"arm64"* ]] {
+      # OBS is arm64-only - build arm64 only
+      build_args+=(
+        ONLY_ACTIVE_ARCH=YES
+        -arch arm64
+        -destination "platform=macOS,arch=arm64"
+      )
+      log_info "Building arm64 only to match OBS installation"
+    } elif [[ "${obs_archs}" == *"x86_64"* ]] {
+      # OBS is x86_64-only - build x86_64 only
+      build_args+=(
+        ONLY_ACTIVE_ARCH=YES
+        -arch x86_64
+        -destination "platform=macOS,arch=x86_64"
+      )
+      log_info "Building x86_64 only to match OBS installation"
+    } else {
+      log_error "Could not determine OBS architecture support"
+      exit 1
+    }
+  } else {
+    # Fallback to universal if we can't check
+    build_args+=(
+      ONLY_ACTIVE_ARCH=NO
+      -arch arm64
+      -arch x86_64
+      -destination "generic/platform=macOS,name=Any Mac"
+    )
+    log_info "Building universal binary (fallback - could not check OBS architectures)"
+  }
 
   pushd build_macos
   run_xcodebuild ${build_args}

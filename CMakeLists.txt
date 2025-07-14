@@ -48,6 +48,37 @@ if(NOT OBS_FOUND AND APPLE)
   if(EXISTS "${OBS_APP_PATH}/Frameworks/libobs.framework")
     message(STATUS "Found system OBS installation at ${OBS_APP_PATH}")
 
+    # Check what architectures OBS supports
+    execute_process(
+      COMMAND file "${OBS_APP_PATH}/Frameworks/libobs.framework/Versions/A/libobs"
+      OUTPUT_VARIABLE OBS_FILE_INFO
+      OUTPUT_STRIP_TRAILING_WHITESPACE
+    )
+
+    # Determine available architectures in OBS
+    set(OBS_HAS_ARM64 FALSE)
+    set(OBS_HAS_X86_64 FALSE)
+
+    if(OBS_FILE_INFO MATCHES "arm64")
+      set(OBS_HAS_ARM64 TRUE)
+    endif()
+    if(OBS_FILE_INFO MATCHES "x86_64")
+      set(OBS_HAS_X86_64 TRUE)
+    endif()
+
+    # Set build architectures based on OBS availability
+    if(CMAKE_GENERATOR STREQUAL "Xcode")
+      if(OBS_HAS_ARM64 AND OBS_HAS_X86_64)
+        message(STATUS "OBS supports universal binary - will build for both architectures via Xcode")
+      elseif(OBS_HAS_ARM64)
+        message(STATUS "OBS is arm64-only - will build for arm64 only")
+        set(CMAKE_OSX_ARCHITECTURES "arm64")
+      elseif(OBS_HAS_X86_64)
+        message(STATUS "OBS is x86_64-only - will build for x86_64 only")
+        set(CMAKE_OSX_ARCHITECTURES "x86_64")
+      endif()
+    endif()
+
     # Use system OBS headers from submodule but system libraries
     set(OBS_STUDIO_PATH "${CMAKE_CURRENT_SOURCE_DIR}/deps/obs-studio")
     if(EXISTS "${OBS_STUDIO_PATH}/libobs/obs.h")
@@ -121,13 +152,6 @@ endif()
 
 # macOS-specific configuration for Syphon support
 if(APPLE)
-  # Get current architecture
-  execute_process(COMMAND uname -m OUTPUT_VARIABLE CURRENT_ARCH OUTPUT_STRIP_TRAILING_WHITESPACE)
-  message(STATUS "Building for architecture: ${CURRENT_ARCH}")
-
-  # Set architecture for current build
-  set(CMAKE_OSX_ARCHITECTURES ${CURRENT_ARCH})
-
   # Add Objective-C compilation flags
   target_compile_options(${PLUGIN_NAME} PRIVATE -fobjc-arc)
 
@@ -145,7 +169,7 @@ if(APPLE)
   set(SYPHON_FRAMEWORK_BUILD_PATH "${SYPHON_FRAMEWORK_PATH}/build/Release/Syphon.framework")
 
   if(EXISTS "${SYPHON_FRAMEWORK_BUILD_PATH}")
-    message(STATUS "Using pre-built Syphon framework for ${CURRENT_ARCH}")
+    message(STATUS "Using pre-built Syphon framework")
 
     # Add the framework headers with highest priority (BEFORE SYSTEM)
     target_include_directories(${PLUGIN_NAME} BEFORE PRIVATE "${SYPHON_FRAMEWORK_BUILD_PATH}/Headers")
