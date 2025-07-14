@@ -318,11 +318,16 @@ After installation, restart OBS Studio to load the plugin.
   add_custom_target(
     create-installer
     DEPENDS ${PLUGIN_NAME}
-    COMMAND ${CMAKE_COMMAND} -E make_directory "${CMAKE_BINARY_DIR}/pkg-staging/Library/Application Support/obs-studio/plugins"
-    COMMAND ${CMAKE_COMMAND} -E copy_directory "$<TARGET_BUNDLE_DIR:${PLUGIN_NAME}>" "${CMAKE_BINARY_DIR}/pkg-staging/Library/Application Support/obs-studio/plugins/${PLUGIN_NAME}.plugin"
     COMMAND
-      /usr/bin/pkgbuild --root "${CMAKE_BINARY_DIR}/pkg-staging" --scripts "${INSTALLER_SCRIPTS_DIR}" --identifier "com.obsproject.${PLUGIN_NAME}"
-      --version "${PLUGIN_VERSION}" --install-location "/" "${CMAKE_BINARY_DIR}/${PLUGIN_NAME}.pkg"
+      ${CMAKE_COMMAND} -E make_directory
+      "${CMAKE_BINARY_DIR}/pkg-staging/Library/Application Support/obs-studio/plugins"
+    COMMAND
+      ${CMAKE_COMMAND} -E copy_directory "$<TARGET_BUNDLE_DIR:${PLUGIN_NAME}>"
+      "${CMAKE_BINARY_DIR}/pkg-staging/Library/Application Support/obs-studio/plugins/${PLUGIN_NAME}.plugin"
+    COMMAND
+      /usr/bin/pkgbuild --root "${CMAKE_BINARY_DIR}/pkg-staging" --scripts "${INSTALLER_SCRIPTS_DIR}" --identifier
+      "com.obsproject.${PLUGIN_NAME}" --version "${PLUGIN_VERSION}" --install-location "/"
+      "${CMAKE_BINARY_DIR}/${PLUGIN_NAME}.pkg"
     COMMAND ${CMAKE_COMMAND} -E remove_directory "${CMAKE_BINARY_DIR}/pkg-staging"
     COMMENT "Creating macOS installer package for ${PLUGIN_NAME}"
   )
