@@ -297,6 +297,9 @@ build() {
   log_group "Installing ${product_name}..."
   cmake --install build_macos --config ${config} --prefix "${project_root}/release/${config}"
 
+  log_group "Creating installer package..."
+  cmake --build build_macos --target create-installer --config ${config}
+
   popd
   log_group
 }
