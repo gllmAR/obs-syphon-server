@@ -4,15 +4,52 @@ project(obs-syphon-server VERSION 1.0.0 LANGUAGES C CXX)
 
 # For macOS, build for current architecture or universal binary
 if(APPLE)
-  # Check if we're building with Xcode (which handles multi-arch via build args)
-  if(CMAKE_GENERATOR STREQUAL "Xcode")
-    # Let Xcode handle architecture via build arguments
-    message(STATUS "Using Xcode generator - architecture will be set by build arguments")
+  # Check OBS architecture support early to set build architectures
+  set(OBS_APP_PATH "/Applications/OBS.app/Contents")
+  if(EXISTS "${OBS_APP_PATH}/Frameworks/libobs.framework")
+    # Check what architectures OBS supports
+    execute_process(
+      COMMAND file "${OBS_APP_PATH}/Frameworks/libobs.framework/Versions/A/libobs"
+      OUTPUT_VARIABLE OBS_FILE_INFO
+      OUTPUT_STRIP_TRAILING_WHITESPACE
+    )
+
+    # Determine available architectures in OBS
+    set(OBS_HAS_ARM64 FALSE)
+    set(OBS_HAS_X86_64 FALSE)
+
+    if(OBS_FILE_INFO MATCHES "arm64")
+      set(OBS_HAS_ARM64 TRUE)
+    endif()
+    if(OBS_FILE_INFO MATCHES "x86_64")
+      set(OBS_HAS_X86_64 TRUE)
+    endif()
+
+    # Set build architectures based on OBS availability before project configuration
+    if(OBS_HAS_ARM64 AND OBS_HAS_X86_64)
+      message(STATUS "OBS supports universal binary - will build for both architectures")
+      set(CMAKE_OSX_ARCHITECTURES "arm64;x86_64")
+    elseif(OBS_HAS_ARM64)
+      message(STATUS "OBS is arm64-only - will build for arm64 only")
+      set(CMAKE_OSX_ARCHITECTURES "arm64")
+    elseif(OBS_HAS_X86_64)
+      message(STATUS "OBS is x86_64-only - will build for x86_64 only")
+      set(CMAKE_OSX_ARCHITECTURES "x86_64")
+    else()
+      message(WARNING "Could not determine OBS architecture, falling back to universal")
+      set(CMAKE_OSX_ARCHITECTURES "arm64;x86_64")
+    endif()
   else()
-    # For other generators, detect current architecture
-    execute_process(COMMAND uname -m OUTPUT_VARIABLE CURRENT_ARCH OUTPUT_STRIP_TRAILING_WHITESPACE)
-    set(CMAKE_OSX_ARCHITECTURES "${CURRENT_ARCH}")
-    message(STATUS "Setting macOS architecture to: ${CURRENT_ARCH}")
+    # Check if we're building with Xcode (which handles multi-arch via build args)
+    if(CMAKE_GENERATOR STREQUAL "Xcode")
+      # Let Xcode handle architecture via build arguments
+      message(STATUS "Using Xcode generator - architecture will be set by build arguments")
+    else()
+      # For other generators, detect current architecture
+      execute_process(COMMAND uname -m OUTPUT_VARIABLE CURRENT_ARCH OUTPUT_STRIP_TRAILING_WHITESPACE)
+      set(CMAKE_OSX_ARCHITECTURES "${CURRENT_ARCH}")
+      message(STATUS "Setting macOS architecture to: ${CURRENT_ARCH}")
+    endif()
   endif()
 endif()
 
@@ -47,37 +84,6 @@ if(NOT OBS_FOUND AND APPLE)
   set(OBS_APP_PATH "/Applications/OBS.app/Contents")
   if(EXISTS "${OBS_APP_PATH}/Frameworks/libobs.framework")
     message(STATUS "Found system OBS installation at ${OBS_APP_PATH}")
-
-    # Check what architectures OBS supports
-    execute_process(
-      COMMAND file "${OBS_APP_PATH}/Frameworks/libobs.framework/Versions/A/libobs"
-      OUTPUT_VARIABLE OBS_FILE_INFO
-      OUTPUT_STRIP_TRAILING_WHITESPACE
-    )
-
-    # Determine available architectures in OBS
-    set(OBS_HAS_ARM64 FALSE)
-    set(OBS_HAS_X86_64 FALSE)
-
-    if(OBS_FILE_INFO MATCHES "arm64")
-      set(OBS_HAS_ARM64 TRUE)
-    endif()
-    if(OBS_FILE_INFO MATCHES "x86_64")
-      set(OBS_HAS_X86_64 TRUE)
-    endif()
-
-    # Set build architectures based on OBS availability
-    if(CMAKE_GENERATOR STREQUAL "Xcode")
-      if(OBS_HAS_ARM64 AND OBS_HAS_X86_64)
-        message(STATUS "OBS supports universal binary - will build for both architectures via Xcode")
-      elseif(OBS_HAS_ARM64)
-        message(STATUS "OBS is arm64-only - will build for arm64 only")
-        set(CMAKE_OSX_ARCHITECTURES "arm64")
-      elseif(OBS_HAS_X86_64)
-        message(STATUS "OBS is x86_64-only - will build for x86_64 only")
-        set(CMAKE_OSX_ARCHITECTURES "x86_64")
-      endif()
-    endif()
 
     # Use system OBS headers from submodule but system libraries
     set(OBS_STUDIO_PATH "${CMAKE_CURRENT_SOURCE_DIR}/deps/obs-studio")
