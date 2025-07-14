@@ -150,59 +150,18 @@ build() {
     log_info "Syphon framework already built"
   }
 
-  # Build OBS Studio for CI to ensure we have the required libraries
+  # Verify OBS Studio is available in CI (installed via Homebrew)
   if [[ -n "${CI}" ]] {
-    log_group "Building OBS Studio for CI..."
-    local obs_studio_path="deps/obs-studio"
-    local obs_build_path="${obs_studio_path}/build"
+    log_group "Verifying OBS Studio installation for CI..."
+    local obs_app_path="/Applications/OBS.app"
     
-    if [[ ! -d "${obs_build_path}" ]] {
-      log_info "OBS Studio not built, building from source for CI..."
-      
-      if [[ ! -d "${obs_studio_path}" ]] {
-        log_error "OBS Studio source not found at ${obs_studio_path}"
-        log_error "Make sure the submodule is properly initialized"
-        exit 1
-      }
-      
-      pushd "${obs_studio_path}"
-      
-      # Configure OBS Studio build with Xcode generator (required on macOS)
-      cmake -S . -B build \
-        -G Xcode \
-        -DCMAKE_BUILD_TYPE=RelWithDebInfo \
-        -DCMAKE_OSX_ARCHITECTURES=arm64 \
-        -DENABLE_BROWSER=OFF \
-        -DENABLE_WEBSOCKET=OFF \
-        -DENABLE_AJA=OFF \
-        -DENABLE_BLACKMAGIC_DECKLINK=OFF \
-        -DENABLE_DECKLINK=OFF \
-        -DENABLE_VIRTUALCAM=OFF \
-        -DENABLE_VLC=OFF \
-        -DENABLE_SCRIPTING=OFF \
-        -DENABLE_PLUGINS=OFF \
-        -DBUILD_FOR_DISTRIBUTION=OFF
-      
-      # Build only libobs (the core library we need) using xcodebuild
-      xcodebuild \
-        -project build/obs-studio.xcodeproj \
-        -target libobs \
-        -configuration RelWithDebInfo \
-        -arch arm64 \
-        build
-      
-      popd
-      
-      # Check for the built library in the Xcode build output location
-      if [[ ! -f "${obs_studio_path}/build/libobs/RelWithDebInfo/libobs.dylib" ]] {
-        log_error "Failed to build OBS Studio libobs"
-        exit 1
-      }
-      
-      log_info "OBS Studio built successfully"
-    } else {
-      log_info "OBS Studio already built"
+    if [[ ! -d "${obs_app_path}" ]] {
+      log_error "OBS Studio not found at ${obs_app_path}"
+      log_error "Make sure OBS is installed via Homebrew in CI"
+      exit 1
     }
+    
+    log_info "OBS Studio found at ${obs_app_path}"
   }
 
   local -a cmake_args=()

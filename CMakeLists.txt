@@ -42,21 +42,29 @@ if(PKG_CONFIG_FOUND)
   pkg_check_modules(OBS QUIET obs)
 endif()
 
-# Check for system OBS installation (macOS app bundle) or built OBS in CI
+# Check for system OBS installation (macOS app bundle)
 if(NOT OBS_FOUND AND APPLE)
-  # In CI, prioritize built OBS from submodule
-  if(DEFINED ENV{CI})
+  set(OBS_APP_PATH "/Applications/OBS.app/Contents")
+  if(EXISTS "${OBS_APP_PATH}/Frameworks/libobs.framework")
+    message(STATUS "Found system OBS installation at ${OBS_APP_PATH}")
+
+    # Use system OBS headers from submodule but system libraries
     set(OBS_STUDIO_PATH "${CMAKE_CURRENT_SOURCE_DIR}/deps/obs-studio")
-    # Check for Xcode build output location (used in CI)
-    if(EXISTS "${OBS_STUDIO_PATH}/build/libobs/RelWithDebInfo/libobs.dylib")
-      message(STATUS "CI: Using built OBS Studio from submodule (Xcode build)")
-
+    if(EXISTS "${OBS_STUDIO_PATH}/libobs/obs.h")
       # Add src directory first so obsconfig.h can be found
       target_include_directories(${PLUGIN_NAME} BEFORE PRIVATE "src")
       target_include_directories(${PLUGIN_NAME} PRIVATE "${OBS_STUDIO_PATH}/libobs")
 
-      # Link against built OBS libraries
-      target_link_libraries(${PLUGIN_NAME} PRIVATE "${OBS_STUDIO_PATH}/build/libobs/RelWithDebInfo/libobs.dylib")
+      # Link against system OBS libraries  
+      target_link_libraries(
+        ${PLUGIN_NAME}
+        PRIVATE
+          "${OBS_APP_PATH}/Frameworks/libobs.framework/Versions/A/libobs"
+          "${OBS_APP_PATH}/Frameworks/obs-frontend-api.dylib"
+      )
+
+      # Set rpath for OBS libraries
+      set_target_properties(${PLUGIN_NAME} PROPERTIES LINK_FLAGS "-rpath ${OBS_APP_PATH}/Frameworks")
 
       target_compile_definitions(
         ${PLUGIN_NAME}
@@ -64,57 +72,6 @@ if(NOT OBS_FOUND AND APPLE)
       )
 
       set(OBS_FOUND TRUE)
-      # Also check for regular cmake build output location as fallback
-    elseif(EXISTS "${OBS_STUDIO_PATH}/build/libobs/libobs.dylib")
-      message(STATUS "CI: Using built OBS Studio from submodule (regular build)")
-
-      # Add src directory first so obsconfig.h can be found
-      target_include_directories(${PLUGIN_NAME} BEFORE PRIVATE "src")
-      target_include_directories(${PLUGIN_NAME} PRIVATE "${OBS_STUDIO_PATH}/libobs")
-
-      # Link against built OBS libraries
-      target_link_libraries(${PLUGIN_NAME} PRIVATE "${OBS_STUDIO_PATH}/build/libobs/libobs.dylib")
-
-      target_compile_definitions(
-        ${PLUGIN_NAME}
-        PRIVATE PLUGIN_NAME_STR="${PLUGIN_NAME}" PLUGIN_VERSION_STR="${PLUGIN_VERSION}"
-      )
-
-      set(OBS_FOUND TRUE)
-    endif()
-  endif()
-
-  # Fall back to system OBS installation if not in CI or if CI build not found
-  if(NOT OBS_FOUND)
-    set(OBS_APP_PATH "/Applications/OBS.app/Contents")
-    if(EXISTS "${OBS_APP_PATH}/Frameworks/libobs.framework")
-      message(STATUS "Found system OBS installation at ${OBS_APP_PATH}")
-
-      # Use system OBS headers from submodule but system libraries
-      set(OBS_STUDIO_PATH "${CMAKE_CURRENT_SOURCE_DIR}/deps/obs-studio")
-      if(EXISTS "${OBS_STUDIO_PATH}/libobs/obs.h")
-        # Add src directory first so obsconfig.h can be found
-        target_include_directories(${PLUGIN_NAME} BEFORE PRIVATE "src")
-        target_include_directories(${PLUGIN_NAME} PRIVATE "${OBS_STUDIO_PATH}/libobs")
-
-        # Link against system OBS libraries  
-        target_link_libraries(
-          ${PLUGIN_NAME}
-          PRIVATE
-            "${OBS_APP_PATH}/Frameworks/libobs.framework/Versions/A/libobs"
-            "${OBS_APP_PATH}/Frameworks/obs-frontend-api.dylib"
-        )
-
-        # Set rpath for OBS libraries
-        set_target_properties(${PLUGIN_NAME} PROPERTIES LINK_FLAGS "-rpath ${OBS_APP_PATH}/Frameworks")
-
-        target_compile_definitions(
-          ${PLUGIN_NAME}
-          PRIVATE PLUGIN_NAME_STR="${PLUGIN_NAME}" PLUGIN_VERSION_STR="${PLUGIN_VERSION}"
-        )
-
-        set(OBS_FOUND TRUE)
-      endif()
     endif()
   endif()
 endif()
