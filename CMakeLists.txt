@@ -236,6 +236,9 @@ if(APPLE)
   # Install from the configuration-specific directory (RelWithDebInfo, Debug, etc.)
   install(DIRECTORY "$<TARGET_BUNDLE_DIR:${PLUGIN_NAME}>" DESTINATION "${OBS_PLUGINS_DIR}" USE_SOURCE_PERMISSIONS)
 
+  # Also install to release directory for CI packaging (when CMAKE_INSTALL_PREFIX is set)
+  install(DIRECTORY "$<TARGET_BUNDLE_DIR:${PLUGIN_NAME}>" DESTINATION "." USE_SOURCE_PERMISSIONS)
+
   # Custom target for easy installation
   add_custom_target(
     install-plugin
