@@ -318,9 +318,7 @@ After installation, restart OBS Studio to load the plugin.
   add_custom_target(
     create-installer
     DEPENDS ${PLUGIN_NAME}
-    COMMAND
-      ${CMAKE_COMMAND} -E make_directory
-      "${CMAKE_BINARY_DIR}/pkg-staging/tmp/obs-syphon-server"
+    COMMAND ${CMAKE_COMMAND} -E make_directory "${CMAKE_BINARY_DIR}/pkg-staging/tmp/obs-syphon-server"
     COMMAND
       ${CMAKE_COMMAND} -E copy_directory "$<TARGET_BUNDLE_DIR:${PLUGIN_NAME}>"
       "${CMAKE_BINARY_DIR}/pkg-staging/tmp/obs-syphon-server/${PLUGIN_NAME}.plugin"
