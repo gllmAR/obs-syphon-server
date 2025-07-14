@@ -80,6 +80,20 @@ Successfully resolved all CI build failures for the OBS Syphon Server plugin. Th
 - This approach is more reliable, faster, and eliminates submodule CMake issues
 - **Commit**: `2787476` - "Use Homebrew OBS instead of building from source in CI"
 
+### 8. Install Path and CI Validation Issues ✅
+**Problem**: Two final CI issues blocking complete success
+1. Plugin install failing - looking in wrong directory for built plugin
+2. CI test validation failing - checking wrong path for plugin bundle
+3. Gersemi formatting check failing after recent CMakeLists.txt changes
+**Solution**:
+- Fixed install path using `$<TARGET_BUNDLE_DIR:${PLUGIN_NAME}>` generator expression
+- Updated CI test script to check multiple configuration directories (RelWithDebInfo, Release, Debug)
+- Applied gersemi formatting to resolve CMake formatting violations
+- All CI validation steps now work with configuration-specific build directories
+- **Commits**: 
+  - `e614a21` - "Fix install path to use configuration-specific directory"
+  - `83f1da8` - "Fix CI validation issues: gersemi formatting and plugin path detection"
+
 ## Files Changed
 
 ### New Files Added
@@ -112,6 +126,9 @@ Successfully resolved all CI build failures for the OBS Syphon Server plugin. Th
 ## Git History
 
 ```
+83f1da8 - Fix CI validation issues: gersemi formatting and plugin path detection
+e614a21 - Fix install path to use configuration-specific directory
+729ccd1 - Complete CI fixes documentation and clean up workspace
 e068266 - Fix architecture detection to properly build arm64-only when OBS is arm64-only
 383ea31 - Implement smart architecture detection based on OBS capabilities  
 2787476 - Use Homebrew OBS instead of building from source in CI
