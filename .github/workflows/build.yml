@@ -11,6 +11,9 @@ on:
 permissions:
   contents: write   # needed for tag → release upload
 
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
+
 jobs:
   build:
     name: macOS arm64
