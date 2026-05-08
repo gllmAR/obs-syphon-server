@@ -1,68 +1,46 @@
 /*
-OBS Syphon Server Plugin
-Copyright (C) 2025 OBS Syphon Team
-
-This program is free software; you can redistribute it and/or modify
-it under the terms of the GNU General Public License as published by
-the Free Software Foundation; either version 2 of the License, or
-(at your option) any later version.
-
-This program is distributed in the hope that it will be useful,
-but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-GNU General Public License for more details.
-
-You should have received a copy of the GNU General Public License along
-with this program. If not, see <https://www.gnu.org/licenses/>
-*/
+ * obs-syphon-server — module entry
+ *
+ * Registers:
+ *   - syphon_server_filter   per-source Syphon publisher (apply as filter)
+ *   - Tools menu entries for toggling Program / Preview Syphon outputs
+ * Runs:
+ *   - Program publisher auto-started; Preview publisher off by default.
+ *
+ * All publishing paths are GPU-only (no CPU readback or upload).
+ */
 
 #include <obs-module.h>
-#include <plugin-support.h>
+#include "plugin-support.h"
+#include "syphon-publisher.h"
+#include "syphon-tools.h"
 
-#ifdef __APPLE__
-// Forward declarations for our output registration function
-extern void register_syphon_output(void);
-
-// Filter is disabled due to symbol conflicts with OBS's Syphon framework
-// extern struct obs_source_info sy_filter_info;
-
-// Forward declarations for main server functions
-extern void syphon_main_server_start(void);
-extern void syphon_main_server_stop(void);
-extern bool syphon_main_server_is_running(void);
-#endif
+extern struct obs_source_info syphon_filter_info;
 
 OBS_DECLARE_MODULE()
-OBS_MODULE_USE_DEFAULT_LOCALE(PLUGIN_NAME, "en-US")
+OBS_MODULE_USE_DEFAULT_LOCALE("obs-syphon-server", "en-US")
+
+MODULE_EXPORT const char *obs_module_description(void)
+{
+	return "Publish OBS output and individual sources to Syphon (zero-copy GPU)";
+}
+
+MODULE_EXPORT const char *obs_module_name(void)
+{
+	return "obs-syphon-server";
+}
 
 bool obs_module_load(void)
 {
-#ifdef __APPLE__
-	// Register the Syphon server output using the new function
-	register_syphon_output();
-
-	// Register the Syphon server filter (temporarily disabled due to symbol conflicts)
-	// TODO: Re-enable once dynamic loading is properly implemented
-	// obs_register_source(&sy_filter_info);
-	// obs_log(LOG_INFO, "[syphon] Registered Syphon server filter");
-
-	// Start the main server automatically
-	syphon_main_server_start();
-	obs_log(LOG_INFO, "[syphon] Auto-started main server");
-
-	obs_log(LOG_INFO, "[syphon] Plugin loaded successfully (version %s)", plugin_version);
+	obs_register_source(&syphon_filter_info);
+	syphon_publisher_init();
+	syphon_tools_register();
+	obs_log(LOG_INFO, "obs-syphon-server v%s loaded (zero-copy GPU)", plugin_version);
 	return true;
-#else
-	obs_log(LOG_ERROR, "[syphon] Plugin is only supported on macOS");
-	return false;
-#endif
 }
 
 void obs_module_unload(void)
 {
-#ifdef __APPLE__
-	// Stop the main server
-	syphon_main_server_stop();
-#endif
-	obs_log(LOG_INFO, "[syphon] Plugin unloaded");
+	syphon_publisher_shutdown();
+	obs_log(LOG_INFO, "obs-syphon-server unloaded");
 }
