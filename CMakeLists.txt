@@ -23,7 +23,7 @@ if(NOT CMAKE_OSX_SYSROOT)
   endif()
 endif()
 
-project(obs-syphon-server VERSION 2.0.0 LANGUAGES C CXX OBJC OBJCXX)
+project(obs-syphon-server VERSION 2.0.1 LANGUAGES C CXX OBJC OBJCXX)
 
 set(CMAKE_C_STANDARD 11)
 set(CMAKE_CXX_STANDARD 17)
