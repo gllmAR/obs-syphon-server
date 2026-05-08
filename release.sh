@@ -74,7 +74,11 @@ got=$(awk -F'[ )]' '/project\(/{for(i=1;i<=NF;i++) if($i=="VERSION") print $(i+1
 [[ "$got" == "$new" ]] || die "version bump failed (CMakeLists shows '$got')"
 
 git add CMakeLists.txt
-git commit -m "Release ${tag}"
+if ! git diff --cached --quiet; then
+  git commit -m "Release ${tag}"
+else
+  echo "  (version unchanged — tagging current HEAD)"
+fi
 git tag -a "${tag}" -m "Release ${tag}"
 git push origin "${branch}"
 git push origin "${tag}"
