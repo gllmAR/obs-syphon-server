@@ -154,7 +154,7 @@ install(DIRECTORY "$<TARGET_BUNDLE_DIR:${PLUGIN_NAME}>"
         USE_SOURCE_PERMISSIONS)
 
 add_custom_target(install-plugin
-  COMMAND ${CMAKE_COMMAND} --install "${CMAKE_BINARY_DIR}" --config $<CONFIG>
+  COMMAND ${CMAKE_COMMAND} --install "${CMAKE_BINARY_DIR}"
   DEPENDS ${PLUGIN_NAME}
   COMMENT "Installing ${PLUGIN_NAME}.plugin → ${OBS_USER_PLUGINS}")
 
@@ -163,7 +163,7 @@ add_custom_target(uninstall-plugin
   COMMENT "Removing ${PLUGIN_NAME}.plugin")
 
 message(STATUS "")
-message(STATUS "  obs-syphon-server v${PROJECT_VERSION}  (arm64, zero-copy GPU)")
+message(STATUS "  obs-syphon-server v${PROJECT_VERSION}  (arm64)")
 message(STATUS "  Toolchain:  ${CMAKE_C_COMPILER}")
 message(STATUS "  SDK:        ${CMAKE_OSX_SYSROOT}")
 message(STATUS "  OBS:        ${OBS_APP}")

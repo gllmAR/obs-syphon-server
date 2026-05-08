@@ -1,13 +1,12 @@
 /*
- * obs-syphon-server — module entry
+ * obs-syphon-server — module entry.
  *
  * Registers:
- *   - syphon_server_filter   per-source Syphon publisher (apply as filter)
- *   - Tools menu entries for toggling Program / Preview Syphon outputs
- * Runs:
- *   - Program publisher auto-started; Preview publisher off by default.
- *
- * All publishing paths are GPU-only (no CPU readback or upload).
+ *   - syphon_server_filter (per-source publisher, used as a video filter)
+ *   - Tools menu "Syphon..." item that opens the settings panel
+ * Starts:
+ *   - Program publisher (on by default)
+ *   - Preview publisher (off by default)
  */
 
 #include <obs-module.h>
@@ -22,7 +21,7 @@ OBS_MODULE_USE_DEFAULT_LOCALE("obs-syphon-server", "en-US")
 
 MODULE_EXPORT const char *obs_module_description(void)
 {
-	return "Publish OBS output and individual sources to Syphon (zero-copy GPU)";
+	return "Publish OBS output and individual sources to Syphon";
 }
 
 MODULE_EXPORT const char *obs_module_name(void)
@@ -35,7 +34,7 @@ bool obs_module_load(void)
 	obs_register_source(&syphon_filter_info);
 	syphon_publisher_init();
 	syphon_tools_register();
-	obs_log(LOG_INFO, "obs-syphon-server v%s loaded (zero-copy GPU)", plugin_version);
+	obs_log(LOG_INFO, "obs-syphon-server v%s loaded", plugin_version);
 	return true;
 }
 
