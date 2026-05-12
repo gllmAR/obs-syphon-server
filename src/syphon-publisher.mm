@@ -18,6 +18,8 @@
 
 #include <obs-module.h>
 #include <obs.h>
+#include <obs-frontend-api.h>
+#include <util/config-file.h>
 
 struct pub_state {
     sy_server_t          *server;
@@ -114,8 +116,32 @@ static void stop(struct pub_state *s)
     }
 }
 
+#define SY_CONFIG_SECTION "SyphonServer"
+#define SY_CONFIG_KEY_PROG "ProgramEnabled"
+#define SY_CONFIG_KEY_PREV "PreviewEnabled"
+
+static bool load_state(const char *key, bool default_val)
+{
+    config_t *cfg = obs_frontend_get_user_config();
+    if (!cfg)
+        return default_val;
+    config_set_default_bool(cfg, SY_CONFIG_SECTION, key, (int)default_val);
+    return (bool)config_get_bool(cfg, SY_CONFIG_SECTION, key);
+}
+
+static void save_state(const char *key, bool enabled)
+{
+    config_t *cfg = obs_frontend_get_user_config();
+    if (!cfg)
+        return;
+    config_set_bool(cfg, SY_CONFIG_SECTION, key, (int)enabled);
+    config_save(cfg);
+}
+
 extern "C" void syphon_publisher_init(void)
 {
+    g_prog.enabled    = load_state(SY_CONFIG_KEY_PROG, true);
+    g_preview.enabled = load_state(SY_CONFIG_KEY_PREV, false);
     if (g_prog.enabled)    start(&g_prog);
     if (g_preview.enabled) start(&g_preview);
 }
@@ -147,6 +173,8 @@ extern "C" void syphon_publisher_set_enabled(sy_output_kind k, bool enabled)
     s->enabled = enabled;
     if (enabled) start(s);
     else         stop(s);
+    const char *key = (k == SY_OUT_PROGRAM) ? SY_CONFIG_KEY_PROG : SY_CONFIG_KEY_PREV;
+    save_state(key, enabled);
 }
 
 extern "C" const char *syphon_publisher_name(sy_output_kind k)
